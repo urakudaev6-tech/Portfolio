@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <title>Галерея — Семейная хроника</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class',theme:{extend:{colors:{emerald:{50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',300:'#6ee7b7',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b'},slate:{50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617'}},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .photo-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .photo-card:hover { transform: translateY(-2px); }
+        .lightbox-open { overflow: hidden; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { display:inline-block; width:1.5rem; height:1.5rem; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.6s linear infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased flex flex-col min-h-screen">
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white text-lg hidden sm:inline">Семейная хроника</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-4 text-sm">
+                <a href="/" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🌳 Дерево</a>
+                <a href="/map" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🗺️ Карта</a>
+                <a href="/gallery" class="text-emerald-600 dark:text-emerald-400 font-medium">🖼️ Галерея</a>
+                <a href="/profile" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">👤 Профиль</a>
+                <a href="/ai-avatars" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🤖 AI-аватары</a>
+                <a href="/settings" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">⚙️ Настройки</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">🌓</button>
+                <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition">Выйти</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <!-- Шапка с фильтрами -->
+        <div class="flex flex-wrap gap-4 justify-between items-end mb-6">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">🖼️ Семейная галерея</h1>
+                <p id="photoCount" class="text-slate-500 text-sm mt-0.5"></p>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <!-- Поиск -->
+                <input type="text" id="searchInput" placeholder="Поиск по описанию..." oninput="filterAndRender()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500 w-44">
+                <!-- Фильтр по человеку -->
+                <select id="personFilter" onchange="filterAndRender()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    <option value="all">Все люди</option>
+                </select>
+                <!-- Фильтр по типу -->
+                <select id="typeFilter" onchange="filterAndRender()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    <option value="all">Все типы</option>
+                    <option value="image">Фото</option>
+                    <option value="video">Видео</option>
+                    <option value="gif">GIF</option>
+                </select>
+                <!-- Сортировка -->
+                <select id="sortSelect" onchange="filterAndRender()" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    <option value="newest">Сначала новые</option>
+                    <option value="oldest">Сначала старые</option>
+                    <option value="name">По имени</option>
+                </select>
+                <!-- Вид -->
+                <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden">
+                    <button id="gridViewBtn" onclick="setView('grid')" class="px-3 py-1.5 bg-emerald-600 text-white text-sm" title="Сетка">⊞</button>
+                    <button id="listViewBtn" onclick="setView('list')" class="px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-100 dark:hover:bg-slate-700" title="Список">☰</button>
+                </div>
+                <!-- Загрузка -->
+                <button onclick="document.getElementById('familyFileUpload').click()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition flex items-center gap-1.5">📁 Загрузить</button>
+                <input type="file" id="familyFileUpload" accept="image/*,video/*,.gif" multiple class="hidden" onchange="uploadFiles(this.files)">
+            </div>
+        </div>
+        <!-- Прогресс загрузки -->
+        <div id="uploadProgress" class="hidden mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-3">
+            <div class="spinner" style="border-top-color:#059669;border-color:rgba(5,150,105,0.3);"></div>
+            <span id="uploadProgressText" class="text-sm text-emerald-700 dark:text-emerald-400">Загрузка...</span>
+        </div>
+        <!-- Сетка -->
+        <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+        <!-- Список -->
+        <div id="galleryList" class="hidden space-y-2"></div>
+        <div id="emptyMessage" class="hidden text-center py-16">
+            <div class="text-6xl mb-4">📷</div>
+            <p class="text-slate-500">Нет фотографий. Загрузите первый файл!</p>
+            <button onclick="document.getElementById('familyFileUpload').click()" class="mt-4 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition">📁 Загрузить</button>
+        </div>
+    </main>
+
+    <!-- ЛАЙТБОКС -->
+    <div id="lightbox" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 opacity-0 invisible transition-all duration-200">
+        <div class="absolute inset-0" onclick="closeLightbox()"></div>
+        <div class="relative z-10 flex flex-col items-center max-w-[95vw] max-h-[95vh]">
+            <!-- Навигация -->
+            <button id="lbPrev" onclick="lbNavigate(-1)" class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center transition">‹</button>
+            <button id="lbNext" onclick="lbNavigate(1)" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-2xl flex items-center justify-center transition">›</button>
+            <!-- Закрыть -->
+            <button onclick="closeLightbox()" class="absolute -top-10 right-0 text-white/70 hover:text-white text-3xl leading-none">×</button>
+            <!-- Медиа -->
+            <div id="lightboxMedia" class="flex justify-center items-center max-h-[80vh]"></div>
+            <!-- Подпись и действия -->
+            <div class="mt-4 text-center">
+                <div id="lightboxCaption" class="text-white text-sm"></div>
+                <div id="lightboxCounter" class="text-white/50 text-xs mt-1"></div>
+                <div class="flex gap-3 justify-center mt-3">
+                    <button onclick="downloadCurrentFile()" class="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition">⬇ Скачать</button>
+                    <button id="lbEditBtn" onclick="editCurrentFile()" class="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition">✎ Описание</button>
+                    <button id="lbDeleteBtn" onclick="deleteCurrentFile()" class="px-4 py-1.5 bg-red-500/70 hover:bg-red-500/90 text-white rounded-lg text-sm transition">🗑 Удалить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования описания -->
+    <div id="editModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 invisible transition-all duration-200">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">✏️ Редактировать описание</h3>
+            <input type="text" id="editDescInput" placeholder="Введите описание..." class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 mb-2 text-sm focus:ring-2 focus:ring-emerald-500">
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Привязать к человеку</label>
+                <select id="editPersonLink" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    <option value="">— не привязан —</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeEditModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">Отмена</button>
+                <button onclick="saveDescription()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-20 right-6 z-[100] opacity-0 transform translate-x-full transition-all duration-300 px-5 py-3 rounded-lg shadow-lg text-sm pointer-events-none text-white"></div>
+
+    <script>
+        let allPersons = [];
+        let familyFiles = [];
+        let filteredItems = [];
+        let currentLbIndex = 0;
+        let currentEditId = null;
+        let currentView = localStorage.getItem('galleryView') || 'grid';
+
+        // Тема
+        const root = document.documentElement;
+        function setTheme(t) { t==='dark' ? root.classList.add('dark') : root.classList.remove('dark'); localStorage.setItem('theme',t); }
+        const st = localStorage.getItem('theme');
+        if (st==='dark' || (!st && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme('dark'); else setTheme('light');
+        document.getElementById('themeToggle').addEventListener('click', () => setTheme(root.classList.contains('dark') ? 'light' : 'dark'));
+
+        // Тост
+        function showToast(msg, type='info') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `fixed top-20 right-6 z-[100] opacity-100 transform translate-x-0 transition-all duration-300 px-5 py-3 rounded-lg shadow-lg text-sm pointer-events-none text-white ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':'bg-slate-700'}`;
+            setTimeout(() => {
+                t.classList.add('opacity-0','translate-x-full');
+                t.classList.remove('opacity-100','translate-x-0');
+            }, 3000);
+        }
+
+        // Загрузка данных
+        async function loadGallery() {
+            try {
+                const [pRes, fRes] = await Promise.all([fetch('/api/persons'), fetch('/api/family-photos')]);
+                allPersons = pRes.ok ? await pRes.json() : [];
+                familyFiles = fRes.ok ? await fRes.json() : [];
+                populateFilters();
+                filterAndRender();
+            } catch(e) {
+                document.getElementById('galleryGrid').innerHTML = '<div class="col-span-full text-center text-red-500 py-8">Ошибка загрузки данных</div>';
+            }
+        }
+
+        function populateFilters() {
+            const pf = document.getElementById('personFilter');
+            pf.innerHTML = '<option value="all">Все люди</option>' + allPersons.map(p => `<option value="${p.id}">${p.full_name}</option>`).join('');
+            const ep = document.getElementById('editPersonLink');
+            ep.innerHTML = '<option value="">— не привязан —</option>' + allPersons.map(p => `<option value="${p.id}">${p.full_name}</option>`).join('');
+        }
+
+        function buildItems() {
+            let items = [];
+            // Фото персон
+            allPersons.forEach(p => {
+                if (p.photo_url) items.push({
+                    id: `person_${p.id}`,
+                    url: p.photo_url,
+                    name: p.full_name,
+                    description: `${p.birth_year||'?'} – ${p.death_year||'?'}`,
+                    file_type: 'image',
+                    type: 'person',
+                    person_id: p.id,
+                    uploaded_at: null
+                });
+            });
+            // Семейные файлы
+            familyFiles.forEach(f => items.push({
+                id: `family_${f.id}`,
+                db_id: f.id,
+                url: f.url,
+                name: f.description || 'Семейный файл',
+                description: f.description || '',
+                file_type: f.file_type || 'image',
+                type: 'family',
+                person_id: f.person_id || null,
+                uploaded_at: f.uploaded_at || null
+            }));
+            return items;
+        }
+
+        function filterAndRender() {
+            const personId = document.getElementById('personFilter').value;
+            const typeF = document.getElementById('typeFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const sort = document.getElementById('sortSelect').value;
+
+            let items = buildItems();
+
+            if (personId !== 'all') items = items.filter(i => String(i.person_id) === personId || (i.type==='person' && String(i.person_id)===personId));
+            if (typeF !== 'all') items = items.filter(i => i.file_type === typeF);
+            if (search) items = items.filter(i => (i.name+' '+i.description).toLowerCase().includes(search));
+
+            if (sort==='name') items.sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+            else if (sort==='oldest') items.sort((a,b)=>(a.uploaded_at||'').localeCompare(b.uploaded_at||''));
+            else items.sort((a,b)=>(b.uploaded_at||'').localeCompare(a.uploaded_at||''));
+
+            filteredItems = items;
+            document.getElementById('photoCount').textContent = `${items.length} файлов`;
+
+            if (currentView === 'grid') renderGrid(items);
+            else renderList(items);
+        }
+
+        function renderGrid(items) {
+            const grid = document.getElementById('galleryGrid');
+            const list = document.getElementById('galleryList');
+            const empty = document.getElementById('emptyMessage');
+            grid.classList.remove('hidden');
+            list.classList.add('hidden');
+
+            if (!items.length) { grid.innerHTML=''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = items.map((item, idx) => {
+                const thumb = item.file_type==='video'
+                    ? `<video src="${item.url}" muted preload="metadata" class="w-full h-44 object-cover"></video>`
+                    : `<img src="${item.url}" alt="${item.name}" class="w-full h-44 object-cover" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22><rect fill=%22%23e2e8f0%22 width=%221%22 height=%221%22/></svg>'">`;
+                const badge = item.file_type==='video' ? '<span class="absolute top-2 left-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">▶ Видео</span>'
+                          : item.file_type==='gif' ? '<span class="absolute top-2 left-2 bg-purple-600/80 text-white text-xs px-1.5 py-0.5 rounded">GIF</span>' : '';
+                const personBadge = item.person_id && item.type==='person' ? `<a href="/profile/${item.person_id}" onclick="event.stopPropagation()" class="absolute top-2 right-2 bg-emerald-600/80 text-white text-xs px-1.5 py-0.5 rounded hover:bg-emerald-600 transition">👤</a>` : '';
+                return `<div class="photo-card bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md cursor-pointer relative group" onclick="openLightbox(${idx})">
+                    <div class="relative overflow-hidden">${thumb}${badge}${personBadge}
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
+                            <span class="opacity-0 group-hover:opacity-100 text-white text-3xl transition">🔍</span>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <div class="font-medium text-slate-900 dark:text-white text-sm truncate">${item.name}</div>
+                        ${item.description && item.type!=='person' ? `<div class="text-xs text-slate-400 truncate mt-0.5">${item.description}</div>` : ''}
+                        ${item.type==='person' ? `<div class="text-xs text-slate-400 mt-0.5">${item.description}</div>` : ''}
+                    </div>
+                    <div class="absolute bottom-14 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                        ${item.type==='family' ? `<button onclick="event.stopPropagation();openEditModalFor(${item.db_id})" class="w-7 h-7 rounded-full bg-slate-700/80 text-white hover:bg-slate-700 flex items-center justify-center text-xs" title="Редактировать">✎</button>` : ''}
+                        <button onclick="event.stopPropagation();deleteItem('${item.type}','${item.type==='family'?item.db_id:item.person_id}')" class="w-7 h-7 rounded-full bg-red-600/80 text-white hover:bg-red-600 flex items-center justify-center text-xs" title="Удалить">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderList(items) {
+            const grid = document.getElementById('galleryGrid');
+            const list = document.getElementById('galleryList');
+            const empty = document.getElementById('emptyMessage');
+            grid.classList.add('hidden');
+            list.classList.remove('hidden');
+
+            if (!items.length) { list.innerHTML=''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            list.innerHTML = items.map((item, idx) => `
+                <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 flex items-center gap-4 hover:shadow-sm transition cursor-pointer group" onclick="openLightbox(${idx})">
+                    <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800">
+                        ${item.file_type==='video' ? `<video src="${item.url}" class="w-full h-full object-cover"></video>` : `<img src="${item.url}" class="w-full h-full object-cover" loading="lazy">`}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-slate-900 dark:text-white text-sm">${item.name}</div>
+                        ${item.description && item.type!=='person' ? `<div class="text-xs text-slate-400 mt-0.5 truncate">${item.description}</div>` : ''}
+                        <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                            <span class="capitalize">${item.file_type}</span>
+                            ${item.uploaded_at ? `<span>• ${new Date(item.uploaded_at).toLocaleDateString('ru-RU')}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition shrink-0">
+                        ${item.type==='family' ? `<button onclick="event.stopPropagation();openEditModalFor(${item.db_id})" class="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs hover:bg-slate-300 dark:hover:bg-slate-600 transition">✎</button>` : ''}
+                        <button onclick="event.stopPropagation();deleteItem('${item.type}','${item.type==='family'?item.db_id:item.person_id}')" class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 rounded text-xs hover:bg-red-200 dark:hover:bg-red-900/50 transition">🗑</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setView(v) {
+            currentView = v;
+            localStorage.setItem('galleryView', v);
+            document.getElementById('gridViewBtn').className = v==='grid' ? 'px-3 py-1.5 bg-emerald-600 text-white text-sm' : 'px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-100 dark:hover:bg-slate-700';
+            document.getElementById('listViewBtn').className = v==='list' ? 'px-3 py-1.5 bg-emerald-600 text-white text-sm' : 'px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-100 dark:hover:bg-slate-700';
+            filterAndRender();
+        }
+
+        // Лайтбокс
+        function openLightbox(idx) {
+            currentLbIndex = idx;
+            renderLightbox();
+            const lb = document.getElementById('lightbox');
+            lb.classList.remove('opacity-0','invisible');
+            lb.classList.add('opacity-100','visible');
+            document.body.classList.add('lightbox-open');
+        }
+
+        function renderLightbox() {
+            const item = filteredItems[currentLbIndex];
+            if (!item) return;
+            const media = document.getElementById('lightboxMedia');
+            if (item.file_type === 'video') {
+                media.innerHTML = `<video src="${item.url}" controls autoplay class="max-w-[85vw] max-h-[75vh] rounded-xl"></video>`;
+            } else {
+                media.innerHTML = `<img src="${item.url}" class="max-w-[85vw] max-h-[75vh] object-contain rounded-xl select-none">`;
+            }
+            let caption = item.name;
+            if (item.description && item.type!=='person') caption += ` — ${item.description}`;
+            if (item.person_id) {
+                const p = allPersons.find(x=>x.id==item.person_id);
+                if (p) caption += ` · <a href="/profile/${p.id}" class="text-emerald-400 hover:text-emerald-300 underline">${p.full_name}</a>`;
+            }
+            document.getElementById('lightboxCaption').innerHTML = caption;
+            document.getElementById('lightboxCounter').textContent = `${currentLbIndex+1} / ${filteredItems.length}`;
+            document.getElementById('lbPrev').style.display = currentLbIndex > 0 ? '' : 'none';
+            document.getElementById('lbNext').style.display = currentLbIndex < filteredItems.length-1 ? '' : 'none';
+            document.getElementById('lbEditBtn').style.display = item.type==='family' ? '' : 'none';
+        }
+
+        function closeLightbox() {
+            const lb = document.getElementById('lightbox');
+            lb.classList.add('opacity-0','invisible');
+            lb.classList.remove('opacity-100','visible');
+            document.getElementById('lightboxMedia').innerHTML = '';
+            document.body.classList.remove('lightbox-open');
+        }
+
+        function lbNavigate(dir) {
+            const newIdx = currentLbIndex + dir;
+            if (newIdx >= 0 && newIdx < filteredItems.length) {
+                currentLbIndex = newIdx;
+                renderLightbox();
+            }
+        }
+
+        function downloadCurrentFile() {
+            const item = filteredItems[currentLbIndex];
+            if (!item) return;
+            const a = document.createElement('a');
+            a.href = item.url;
+            a.download = item.url.split('/').pop();
+            a.click();
+        }
+
+        function editCurrentFile() {
+            const item = filteredItems[currentLbIndex];
+            if (!item || item.type !== 'family') return;
+            closeLightbox();
+            openEditModalFor(item.db_id);
+        }
+
+        async function deleteCurrentFile() {
+            const item = filteredItems[currentLbIndex];
+            if (!item || !confirm('Удалить файл?')) return;
+            closeLightbox();
+            await deleteItem(item.type, item.type==='family' ? item.db_id : item.person_id);
+        }
+
+        // Удаление
+        async function deleteItem(type, id) {
+            const url = type==='person' ? `/api/person/${id}/photo` : `/api/family-photos/${id}`;
+            try {
+                const r = await fetch(url, { method:'DELETE' });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка удаления');
+                showToast('Файл удалён','success');
+                await loadGallery();
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // Редактирование описания
+        function openEditModalFor(id) {
+            currentEditId = id;
+            const f = familyFiles.find(x=>x.id==id);
+            document.getElementById('editDescInput').value = f ? (f.description||'') : '';
+            document.getElementById('editPersonLink').value = f && f.person_id ? f.person_id : '';
+            const m = document.getElementById('editModal');
+            m.classList.remove('opacity-0','invisible');
+            m.classList.add('opacity-100','visible');
+        }
+
+        function closeEditModal() {
+            const m = document.getElementById('editModal');
+            m.classList.add('opacity-0','invisible');
+            m.classList.remove('opacity-100','visible');
+            currentEditId = null;
+        }
+
+        async function saveDescription() {
+            if (!currentEditId) return;
+            const description = document.getElementById('editDescInput').value.trim();
+            const person_id = document.getElementById('editPersonLink').value || null;
+            try {
+                const r = await fetch(`/api/family-photos/${currentEditId}`, {
+                    method:'PUT',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ description, person_id })
+                });
+                if (!r.ok) throw new Error('Ошибка сохранения');
+                showToast('Описание обновлено','success');
+                closeEditModal();
+                await loadGallery();
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // Загрузка файлов (множественная)
+        async function uploadFiles(files) {
+            if (!files || !files.length) return;
+            const progress = document.getElementById('uploadProgress');
+            const progressText = document.getElementById('uploadProgressText');
+            progress.classList.remove('hidden');
+            let done = 0;
+            const total = files.length;
+            const errors = [];
+            for (const file of files) {
+                progressText.textContent = `Загрузка ${done+1} из ${total}: ${file.name}`;
+                try {
+                    const fd = new FormData();
+                    fd.append('photo', file);
+                    const r = await fetch('/upload-family-photo', { method:'POST', body:fd });
+                    if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                    done++;
+                } catch(e) {
+                    errors.push(file.name+': '+e.message);
+                }
+            }
+            progress.classList.add('hidden');
+            if (errors.length) showToast(`Ошибки: ${errors.join('; ')}`, 'error');
+            else showToast(`Загружено ${done} файлов`, 'success');
+            document.getElementById('familyFileUpload').value = '';
+            await loadGallery();
+        }
+
+        // Клавиши
+        document.addEventListener('keydown', e => {
+            if (e.key==='Escape') { closeLightbox(); closeEditModal(); }
+            if (e.key==='ArrowLeft') lbNavigate(-1);
+            if (e.key==='ArrowRight') lbNavigate(1);
+        });
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target===this) closeEditModal();
+        });
+
+        // Drag & Drop на всю страницу
+        document.addEventListener('dragover', e => e.preventDefault());
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+        });
+
+        setView(currentView);
+        document.addEventListener('DOMContentLoaded', loadGallery);
+
+        window.filterAndRender=filterAndRender;
+        window.setView=setView;
+        window.openLightbox=openLightbox;
+        window.closeLightbox=closeLightbox;
+        window.lbNavigate=lbNavigate;
+        window.deleteItem=deleteItem;
+        window.openEditModalFor=openEditModalFor;
+        window.closeEditModal=closeEditModal;
+        window.saveDescription=saveDescription;
+        window.uploadFiles=uploadFiles;
+        window.downloadCurrentFile=downloadCurrentFile;
+        window.editCurrentFile=editCurrentFile;
+        window.deleteCurrentFile=deleteCurrentFile;
+    </script>
+</body>
+</html>

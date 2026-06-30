@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<title>AI-аватары — Семейная хроника</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{
+  emerald:{50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',300:'#6ee7b7',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b'},
+  slate:{50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617'}
+},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Avatar animations ── */
+@keyframes breathe {
+  0%,100%{transform:scale(1);}
+  40%{transform:scale(1.018);}
+  70%{transform:scale(1.01);}
+}
+@keyframes talk {
+  0%,100%{transform:scale(1) rotate(0deg);}
+  25%{transform:scale(1.025) rotate(.4deg);}
+  75%{transform:scale(1.015) rotate(-.3deg);}
+}
+@keyframes lipOpen {
+  0%,100%{transform:translateX(-50%) scaleY(1);}
+  50%{transform:translateX(-50%) scaleY(2.5);}
+}
+@keyframes ripple {
+  0%{box-shadow:0 0 0 0 rgba(16,185,129,.35);}
+  70%{box-shadow:0 0 0 18px rgba(16,185,129,0);}
+  100%{box-shadow:0 0 0 0 rgba(16,185,129,0);}
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+.av-alive  { animation: breathe 4s ease-in-out infinite; }
+.av-talking{ animation: talk .35s ease-in-out infinite; }
+.av-talking .av-ring{ animation: ripple .6s ease-out infinite; }
+.mouth-speaking{ animation: lipOpen .28s ease-in-out infinite; }
+
+/* Emotion filters */
+.em-happy { filter: brightness(1.12) saturate(1.25); }
+.em-sad   { filter: brightness(.88) saturate(.7) sepia(.15); }
+.em-angry { filter: brightness(1.06) contrast(1.12) saturate(1.1); }
+.em-surprise{ filter: brightness(1.08) hue-rotate(8deg); }
+
+/* ── Chat bubbles ── */
+.bubble-user{ background:#d1fae5;color:#064e3b;border-bottom-right-radius:.3rem; }
+.dark .bubble-user{ background:#065f46;color:#d1fae5; }
+.bubble-ai{ background:#f1f5f9;color:#1e293b;border-bottom-left-radius:.3rem; }
+.dark .bubble-ai{ background:#1e293b;color:#f1f5f9; }
+
+/* ── Panel ── */
+.panel{ background:white;border:1px solid #e2e8f0;border-radius:1rem;padding:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.dark .panel{ background:#0f172a;border-color:#1e293b; }
+.fld{ width:100%;padding:.4rem .65rem;border-radius:.5rem;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-size:.8rem;transition:box-shadow .15s; }
+.dark .fld{ border-color:#334155;background:#1e293b;color:#f8fafc; }
+.fld:focus{ outline:none;box-shadow:0 0 0 2px #10b981; }
+.lbl{ display:block;font-size:.72rem;font-weight:500;color:#475569;margin-bottom:.2rem; }
+.dark .lbl{ color:#94a3b8; }
+.msg-anim{ animation:fadeIn .22s ease; }
+
+/* ── Typing dots ── */
+.dot-anim span{ display:inline-block;width:6px;height:6px;margin:0 2px;border-radius:50%;background:#94a3b8;animation:dotBounce 1.2s infinite; }
+.dot-anim span:nth-child(2){ animation-delay:.2s; }
+.dot-anim span:nth-child(3){ animation-delay:.4s; }
+@keyframes dotBounce{ 0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);} }
+
+/* ── Voice panel slider ── */
+input[type=range]{ accent-color:#10b981; }
+
+/* scrollbar */
+#chatArea{ scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased min-h-screen flex flex-col">
+
+<!-- ═══ HEADER ═══ -->
+<header class="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800">
+<div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+  <a href="/dashboard" class="flex items-center gap-2 flex-shrink-0">
+    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow">
+      <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+    </div>
+    <span class="font-bold text-slate-900 dark:text-white text-sm hidden sm:inline">Семейная хроника</span>
+  </a>
+  <nav class="hidden md:flex items-center gap-1 text-xs">
+    <a href="/tree"       class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">🌳 Древо</a>
+    <a href="/dashboard"  class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">📊 Дашборд</a>
+    <a href="/gallery"    class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">🖼️ Галерея</a>
+    <a href="/profile"    class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">👥 Люди</a>
+    <span class="px-2.5 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-semibold">🤖 Аватары</span>
+    <a href="/settings"   class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">⚙️ Настройки</a>
+  </nav>
+  <div class="flex items-center gap-2">
+    <button id="thTog" class="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">🌓</button>
+    <a href="/logout" class="text-xs text-slate-500 hover:text-red-600 transition hidden sm:inline">Выйти</a>
+  </div>
+</div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="flex-1 max-w-6xl mx-auto w-full px-4 py-6 flex flex-col gap-5">
+
+<!-- ── TOP BAR: person select + controls ── -->
+<div class="panel flex flex-wrap items-end gap-4">
+  <!-- Person selector -->
+  <div class="flex-1 min-w-[200px]">
+    <label class="lbl">👤 Выберите человека</label>
+    <select id="personSel" class="fld text-sm">
+      <option value="">— Загрузка…</option>
+    </select>
+  </div>
+
+  <!-- Animate dropdown -->
+  <div class="relative">
+    <label class="lbl opacity-0 select-none">x</label>
+    <button id="animBtn" class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition">
+      ✨ Оживить <span class="text-xs opacity-60">▾</span>
+    </button>
+    <div id="animMenu" class="hidden absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-30 overflow-hidden">
+      <button onclick="doAnimate('breathe')" class="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition">🫁 Дыхание (мягкое)</button>
+      <button onclick="doAnimate('magic')"   class="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition">🔮 Магическое свечение</button>
+      <button onclick="doAnimate('stop')"    class="flex items-center gap-2 w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 transition border-t border-slate-100 dark:border-slate-700">⏹ Остановить</button>
+    </div>
+  </div>
+
+  <!-- Photo controls -->
+  <div>
+    <label class="lbl opacity-0 select-none">x</label>
+    <div class="flex gap-1.5">
+      <button onclick="document.getElementById('photoFile').click()" title="Загрузить фото"
+              class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition">📷 Фото</button>
+      <button onclick="delPhoto()" title="Удалить фото"
+              class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition">🗑</button>
+      <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="uploadPhoto(this.files[0])">
+    </div>
+  </div>
+
+  <!-- Clear chat -->
+  <div>
+    <label class="lbl opacity-0 select-none">x</label>
+    <button onclick="clearChat()" title="Очистить историю"
+            class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-xs font-medium transition">🗑 Очистить чат</button>
+  </div>
+</div>
+
+<!-- ── MAIN GRID: avatar + chat ── -->
+<div class="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
+
+  <!-- ── LEFT: Avatar + settings ── -->
+  <div class="flex flex-col gap-4 w-full lg:w-72 flex-shrink-0">
+
+    <!-- Avatar card -->
+    <div class="panel flex flex-col items-center gap-3">
+      <!-- Avatar circle -->
+      <div class="relative" id="avRing" style="width:148px;height:148px;">
+        <!-- Glow ring -->
+        <div class="av-ring absolute inset-0 rounded-full pointer-events-none" id="avGlowRing"></div>
+        <!-- Image wrapper (animation applied here) -->
+        <div id="avWrap" class="w-full h-full rounded-full shadow-xl overflow-hidden cursor-pointer relative bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center"
+             onclick="if(currentId) document.getElementById('photoFile').click()">
+          <div id="avImg" class="w-full h-full flex items-center justify-center text-6xl">👤</div>
+          <!-- Mouth indicator -->
+          <div id="avMouth" class="absolute bottom-3 left-1/2 -translate-x-1/2 w-9 h-2 bg-black/50 rounded-full opacity-0 transition-opacity"></div>
+        </div>
+        <!-- Status dot -->
+        <span id="avStatus" class="absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 bg-slate-300" title="Не выбран"></span>
+      </div>
+
+      <div class="text-center">
+        <div class="font-bold text-slate-900 dark:text-white" id="avName">Не выбран</div>
+        <div class="text-xs text-slate-500 mt-0.5" id="avMeta">—</div>
+      </div>
+
+      <!-- Emotion indicator -->
+      <div id="emoBadge" class="hidden px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+        😐 Нейтрально
+      </div>
+
+      <!-- Bio snippet -->
+      <p id="avBio" class="text-xs text-slate-500 dark:text-slate-400 text-center line-clamp-3 hidden"></p>
+    </div>
+
+    <!-- ── Voice settings ── -->
+    <div class="panel flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-slate-900 dark:text-white">🎙 Голос</span>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <span class="text-xs text-slate-500">Вкл</span>
+          <div class="relative">
+            <input type="checkbox" id="voiceToggle" class="sr-only" checked>
+            <div id="voiceTrack" class="w-9 h-5 rounded-full bg-emerald-500 transition-colors"></div>
+            <div id="voiceThumb" class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform translate-x-4"></div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Voice selector -->
+      <div>
+        <label class="lbl">Голос браузера</label>
+        <select id="voiceSel" class="fld"></select>
+      </div>
+
+      <!-- Quick presets -->
+      <div>
+        <label class="lbl">Быстрый пресет</label>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="applyPreset('old_m')"    class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs transition">👴 Старик</button>
+          <button onclick="applyPreset('old_f')"    class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs transition">👵 Старушка</button>
+          <button onclick="applyPreset('young_m')"  class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs transition">🧑 Молодой</button>
+          <button onclick="applyPreset('young_f')"  class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs transition">👩 Молодая</button>
+          <button onclick="applyPreset('narrator')" class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs transition col-span-2">🎙 Рассказчик</button>
+        </div>
+      </div>
+
+      <!-- Sliders -->
+      <div class="space-y-2.5">
+        <div>
+          <div class="flex justify-between mb-1"><label class="lbl m-0">Скорость речи</label><span id="rateVal" class="text-xs text-slate-500">0.85</span></div>
+          <input type="range" id="rateSlider" min="0.4" max="2.0" step="0.05" value="0.85" class="w-full h-1.5 rounded"
+                 oninput="document.getElementById('rateVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><label class="lbl m-0">Тон (pitch)</label><span id="pitchVal" class="text-xs text-slate-500">1.00</span></div>
+          <input type="range" id="pitchSlider" min="0.3" max="2.0" step="0.05" value="1.0" class="w-full h-1.5 rounded"
+                 oninput="document.getElementById('pitchVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><label class="lbl m-0">Громкость</label><span id="volVal" class="text-xs text-slate-500">1.0</span></div>
+          <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1" class="w-full h-1.5 rounded"
+                 oninput="document.getElementById('volVal').textContent=parseFloat(this.value).toFixed(2)">
+        </div>
+      </div>
+
+      <!-- Test voice -->
+      <button onclick="testVoice()" class="w-full py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition">
+        🔊 Проверить голос
+      </button>
+    </div>
+
+    <!-- ── Chat settings ── -->
+    <div class="panel flex flex-col gap-3">
+      <span class="text-sm font-semibold text-slate-900 dark:text-white">⚙️ Параметры чата</span>
+
+      <div>
+        <label class="lbl">Стиль ответов</label>
+        <select id="styleMode" class="fld">
+          <option value="default">Обычный (биография)</option>
+          <option value="elder">Мудрый старец</option>
+          <option value="emotional">Эмоциональный</option>
+          <option value="laconic">Краткий / сдержанный</option>
+          <option value="storyteller">Рассказчик историй</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="lbl">Язык ответов</label>
+        <select id="langMode" class="fld">
+          <option value="ru">Русский</option>
+          <option value="uk">Украинский</option>
+          <option value="be">Белорусский</option>
+          <option value="auto">Авто (как пишут)</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="flex justify-between mb-1"><label class="lbl m-0">Длина ответов</label><span id="lenVal" class="text-xs text-slate-500">средний</span></div>
+        <input type="range" id="lenSlider" min="1" max="3" step="1" value="2" class="w-full h-1.5 rounded"
+               oninput="updateLenLabel(this.value)">
+      </div>
+
+      <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+        <input type="checkbox" id="autoSpeak" class="rounded border-slate-300 dark:border-slate-600" checked>
+        Авто-озвучка ответов
+      </label>
+
+      <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+        <input type="checkbox" id="emotionEnabled" class="rounded border-slate-300 dark:border-slate-600" checked>
+        Эмоциональные реакции аватара
+      </label>
+    </div>
+
+  </div><!-- end left -->
+
+  <!-- ── RIGHT: Chat ── -->
+  <div class="flex-1 panel flex flex-col min-h-[420px] max-h-[calc(100vh-220px)]">
+
+    <!-- Chat header -->
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" id="chatStatusDot"></div>
+        <span class="text-sm font-semibold text-slate-900 dark:text-white" id="chatTitle">Выберите человека для диалога</span>
+      </div>
+      <div class="flex items-center gap-1.5 text-xs text-slate-500">
+        <span id="msgCount">0 сообщений</span>
+        <button onclick="exportChat()" title="Экспорт" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition">💾</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="chatArea" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+
+    <!-- Typing indicator -->
+    <div id="typingRow" class="hidden pt-2">
+      <div class="flex items-end gap-2">
+        <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs flex-shrink-0" id="typingAvatar">🤖</div>
+        <div class="bubble-ai px-4 py-2.5 rounded-2xl text-sm dot-anim">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick questions -->
+    <div id="quickQ" class="hidden flex-wrap gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-800"></div>
+
+    <!-- Input -->
+    <div class="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <input type="text" id="msgInput" placeholder="Введите сообщение…"
+             class="fld flex-1 rounded-full px-4 py-2"
+             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}">
+      <button onclick="send()" id="sendBtn"
+              class="w-10 h-10 flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-full flex items-center justify-center transition">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div><!-- end grid -->
+</main>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-6 right-5 z-[9999] opacity-0 translate-y-4 transition-all duration-300 px-5 py-3 rounded-xl shadow-xl text-sm font-medium pointer-events-none"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+/* ── Theme ── */
+(function(){
+  const r=document.documentElement;
+  const sv=localStorage.getItem('theme');
+  r.classList.toggle('dark',sv==='dark'||(!sv&&matchMedia('(prefers-color-scheme:dark)').matches));
+  document.getElementById('thTog').addEventListener('click',()=>{
+    localStorage.setItem('theme',r.classList.toggle('dark')?'dark':'light');
+  });
+})();
+
+/* ── State ── */
+let persons=[], currentId=null, person=null;
+let chatHistory={};   // { id: [{role,text,ts}] }
+let synth = window.speechSynthesis;
+let voices=[], chosenVoice=null;
+let speaking=false;
+let animMode=null;
+
+/* ── Emotions ── */
+const EMOTIONS={
+  happy:   {kw:['радост','счаст','весел','поздрав','улыб','смеш','хохот','люблю','обожа'],icon:'😊',cls:'em-happy',label:'Радость'},
+  sad:     {kw:['груст','печал','жал','тоск','плач','горе','уны','скучаю','потерял'],icon:'😢',cls:'em-sad',label:'Грусть'},
+  angry:   {kw:['зол','сердит','гнев','возмущ','ярост','негод','злю','ненавиж'],icon:'😤',cls:'em-angry',label:'Раздражение'},
+  surprise:{kw:['удивил','невероят','поразил','не ожида','вот это','ого','невозможно'],icon:'😲',cls:'em-surprise',label:'Удивление'},
+};
+
+/* ── Quick question templates ── */
+const QUICK_Q = [
+  'Расскажи о своём детстве',
+  'Чем ты занимался в молодости?',
+  'Что было самым важным в жизни?',
+  'Расскажи о своей семье',
+  'Какие трудности пришлось пережить?',
+  'О чём мечтал?',
+  'Что хотел бы передать потомкам?',
+];
+
+/* ── Presets ── */
+const PRESETS={
+  old_m:   {rate:.72, pitch:.72, vol:1},
+  old_f:   {rate:.78, pitch:1.15, vol:1},
+  young_m: {rate:.98, pitch:.88, vol:1},
+  young_f: {rate:.95, pitch:1.25, vol:1},
+  narrator:{rate:.82, pitch:.95, vol:1},
+};
+
+/* ── Voice toggle ── */
+const voiceToggle=document.getElementById('voiceToggle');
+const voiceTrack =document.getElementById('voiceTrack');
+const voiceThumb =document.getElementById('voiceThumb');
+voiceToggle.addEventListener('change',()=>{
+  const on=voiceToggle.checked;
+  voiceTrack.style.background=on?'#10b981':'#94a3b8';
+  voiceThumb.style.transform=on?'translateX(16px)':'translateX(0)';
+  if(!on && synth) synth.cancel();
+});
+
+/* ── Len label ── */
+function updateLenLabel(v){
+  document.getElementById('lenVal').textContent=['','короткий','средний','подробный'][v];
+}
+
+/* ── Load voices ── */
+function loadVoices(){
+  voices = synth ? synth.getVoices() : [];
+  const sel=document.getElementById('voiceSel');
+  const ruVoices=voices.filter(v=>v.lang.startsWith('ru'));
+  const otherVoices=voices.filter(v=>!v.lang.startsWith('ru'));
+  sel.innerHTML='<option value="">Авто (системный)</option>';
+  if(ruVoices.length){
+    const g=document.createElement('optgroup'); g.label='🇷🇺 Русский';
+    ruVoices.forEach((v,i)=>{ const o=document.createElement('option'); o.value=v.name; o.textContent=`${v.name} (${v.lang})`; g.appendChild(o); });
+    sel.appendChild(g);
+  }
+  if(otherVoices.length){
+    const g=document.createElement('optgroup'); g.label='Другие';
+    otherVoices.slice(0,12).forEach(v=>{ const o=document.createElement('option'); o.value=v.name; o.textContent=`${v.name} (${v.lang})`; g.appendChild(o); });
+    sel.appendChild(g);
+  }
+}
+if(synth){
+  if(synth.onvoiceschanged!==undefined) synth.onvoiceschanged=loadVoices;
+  setTimeout(loadVoices,500);
+}
+
+/* ── Load persons ── */
+async function loadPersons(){
+  try{
+    const r=await fetch('/api/persons');
+    persons=await r.json();
+    const sel=document.getElementById('personSel');
+    sel.innerHTML='<option value="">— Выберите человека —</option>'+
+      persons.map(p=>`<option value="${p.id}">${p.full_name||(p.name+' '+p.surname)}</option>`).join('');
+  }catch(e){ toast('Ошибка загрузки: '+e.message,'error'); }
+}
+
+/* ── Select person ── */
+document.getElementById('personSel').addEventListener('change',function(){
+  const id=parseInt(this.value);
+  if(!id){ clearPersonUI(); return; }
+  currentId=id;
+  person=persons.find(p=>p.id===id);
+  if(!person) return;
+  updateAvatarUI();
+  buildQuickQ();
+  restoreHistory();
+  renderHistory();
+  updateChatHeader();
+  // Greet
+  const gy=person.birth_year?` Я родился в ${person.birth_year} году.`:'';
+  const nm=person.full_name||(person.name+' '+person.surname);
+  const greet=`Здравствуйте! Меня зовут ${nm}.${gy} Рад поговорить с вами.`;
+  setTimeout(()=>speakText(greet),400);
+  autoPitchByGender();
+});
+
+/* ── Update avatar UI ── */
+function updateAvatarUI(){
+  if(!person){ clearPersonUI(); return; }
+  const img=document.getElementById('avImg');
+  const nm=person.full_name||(person.name+' '+person.surname);
+  if(person.photo_url){
+    img.innerHTML=`<img src="${person.photo_url}" alt="${nm}" class="w-full h-full object-cover">`;
+  } else {
+    const col=person.gender==='M'?'#3b82f6':person.gender==='F'?'#ec4899':'#64748b';
+    img.style.background=`linear-gradient(135deg,${col}cc,${col}66)`;
+    img.innerHTML='<span style="font-size:3.5rem">👤</span>';
+  }
+  document.getElementById('avName').textContent=nm;
+  const meta=[];
+  if(person.birth_year) meta.push(`р. ${person.birth_year}`);
+  if(person.death_year) meta.push(`† ${person.death_year}`);
+  if(person.birth_place) meta.push(person.birth_place);
+  document.getElementById('avMeta').textContent=meta.join(' · ')||'—';
+  const bioEl=document.getElementById('avBio');
+  if(person.bio){ bioEl.textContent=person.bio; bioEl.classList.remove('hidden'); }
+  else bioEl.classList.add('hidden');
+  const st=document.getElementById('avStatus');
+  st.style.background='#10b981'; st.title='Активен';
+  setEmotion(null);
+  document.getElementById('avWrap').classList.add('av-alive');
+}
+
+function clearPersonUI(){
+  currentId=null; person=null;
+  document.getElementById('avImg').innerHTML='<span style="font-size:3.5rem">👤</span>';
+  document.getElementById('avName').textContent='Не выбран';
+  document.getElementById('avMeta').textContent='—';
+  document.getElementById('avBio').classList.add('hidden');
+  document.getElementById('avStatus').style.background='#94a3b8';
+  document.getElementById('avWrap').className='w-full h-full rounded-full shadow-xl overflow-hidden cursor-pointer relative flex items-center justify-center bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-600';
+  document.getElementById('chatArea').innerHTML='';
+  document.getElementById('quickQ').classList.add('hidden');
+  document.getElementById('chatTitle').textContent='Выберите человека для диалога';
+  document.getElementById('chatStatusDot').style.background='';
+  document.getElementById('msgCount').textContent='0 сообщений';
+}
+
+/* ── Emotion ── */
+function detectEmotion(text){
+  const lo=text.toLowerCase();
+  for(const [key,e] of Object.entries(EMOTIONS)){
+    if(e.kw.some(k=>lo.includes(k))) return key;
+  }
+  return null;
+}
+function setEmotion(key){
+  const img=document.getElementById('avImg');
+  const badge=document.getElementById('emoBadge');
+  // remove all em classes
+  img.classList.remove(...Object.values(EMOTIONS).map(e=>e.cls));
+  if(!key||!document.getElementById('emotionEnabled').checked){
+    badge.classList.add('hidden');
+    return;
+  }
+  const e=EMOTIONS[key];
+  if(!e) return;
+  img.classList.add(e.cls);
+  badge.textContent=`${e.icon} ${e.label}`;
+  badge.classList.remove('hidden');
+  setTimeout(()=>setEmotion(null),6000);
+}
+
+/* ── Animate avatar ── */
+function doAnimate(mode){
+  const wrap=document.getElementById('avWrap');
+  wrap.classList.remove('av-alive','av-talking');
+  document.getElementById('animMenu').classList.add('hidden');
+  if(mode==='stop'){ animMode=null; toast('Анимация остановлена','info'); return; }
+  if(mode==='breathe'){ wrap.classList.add('av-alive'); animMode='breathe'; toast('Дыхание включено','success'); }
+  if(mode==='magic'){
+    wrap.style.boxShadow='0 0 0 4px #10b981, 0 0 24px 8px rgba(16,185,129,.35)';
+    animMode='magic';
+    toast('Магическое свечение активировано','success');
+    setTimeout(()=>{ if(animMode==='magic') wrap.style.boxShadow=''; animMode=null; },8000);
+  }
+}
+document.getElementById('animBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  document.getElementById('animMenu').classList.toggle('hidden');
+});
+document.addEventListener('click',()=>document.getElementById('animMenu').classList.add('hidden'));
+
+/* ── Quick questions ── */
+function buildQuickQ(){
+  const wrap=document.getElementById('quickQ');
+  wrap.innerHTML='';
+  wrap.classList.remove('hidden');
+  QUICK_Q.forEach(q=>{
+    const b=document.createElement('button');
+    b.className='px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-xs rounded-full border border-slate-200 dark:border-slate-700 transition text-slate-700 dark:text-slate-300';
+    b.textContent=q;
+    b.onclick=()=>{ document.getElementById('msgInput').value=q; send(); };
+    wrap.appendChild(b);
+  });
+}
+
+/* ── Chat history ── */
+function restoreHistory(){
+  const k=`av_chat_${currentId}`;
+  try{
+    const s=localStorage.getItem(k);
+    chatHistory[currentId]=s?JSON.parse(s):[];
+  }catch{ chatHistory[currentId]=[]; }
+}
+function saveHistory(){
+  if(!currentId) return;
+  try{ localStorage.setItem(`av_chat_${currentId}`, JSON.stringify(chatHistory[currentId]||[])); }
+  catch(e){ console.warn('localStorage full',e); }
+}
+function clearChat(){
+  if(!currentId){ toast('Выберите человека','error'); return; }
+  if(!confirm('Очистить историю чата с этим человеком?')) return;
+  chatHistory[currentId]=[];
+  saveHistory();
+  renderHistory();
+  toast('История очищена','success');
+}
+function exportChat(){
+  if(!currentId){ toast('Выберите человека','error'); return; }
+  const nm=person?.full_name||(person?.name+' '+person?.surname)||'avatar';
+  const lines=(chatHistory[currentId]||[]).map(m=>`[${m.role==='user'?'Вы':'Аватар'}] ${m.text}`);
+  const blob=new Blob([lines.join('\n\n')],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`chat_${nm}.txt`; a.click();
+}
+
+/* ── Render history ── */
+function renderHistory(){
+  const area=document.getElementById('chatArea');
+  const hist=chatHistory[currentId]||[];
+  area.innerHTML='';
+  hist.forEach(m=>appendBubble(m.role,m.text,false));
+  area.scrollTop=area.scrollHeight;
+  updateMsgCount();
+}
+function appendBubble(role,text,animate=true){
+  const area=document.getElementById('chatArea');
+  const isUser=role==='user';
+  const div=document.createElement('div');
+  div.className=`flex items-end gap-2 ${isUser?'flex-row-reverse':''} ${animate?'msg-anim':''}`;
+  const avEl=person&&!isUser
+    ? (person.photo_url
+        ? `<img src="${person.photo_url}" class="w-7 h-7 rounded-full object-cover flex-shrink-0" alt="">`
+        : `<div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs" style="background:${person.gender==='M'?'#3b82f6':person.gender==='F'?'#ec4899':'#64748b'}">👤</div>`)
+    : `<div class="w-7 h-7 rounded-full flex-shrink-0 bg-emerald-500 flex items-center justify-center text-xs text-white">Вы</div>`;
+  div.innerHTML=`
+    ${!isUser?avEl:''}
+    <div class="max-w-[78%] px-4 py-2.5 rounded-2xl text-sm ${isUser?'bubble-user':'bubble-ai'}">${escHtml(text)}</div>
+    ${isUser?avEl:''}
+  `;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+  updateMsgCount();
+}
+function escHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function updateMsgCount(){
+  const n=(chatHistory[currentId]||[]).length;
+  document.getElementById('msgCount').textContent=`${n} ${n===1?'сообщение':n<5?'сообщения':'сообщений'}`;
+}
+function updateChatHeader(){
+  const nm=person?.full_name||(person?.name+' '+person?.surname)||'—';
+  document.getElementById('chatTitle').textContent=nm;
+  document.getElementById('chatStatusDot').style.background='#10b981';
+}
+
+/* ── SEND MESSAGE ── */
+async function send(){
+  if(!currentId){ toast('Сначала выберите человека','error'); return; }
+  const inp=document.getElementById('msgInput');
+  const msg=inp.value.trim();
+  if(!msg) return;
+  inp.value='';
+  inp.disabled=true;
+  document.getElementById('sendBtn').disabled=true;
+
+  // Add user bubble
+  if(!chatHistory[currentId]) chatHistory[currentId]=[];
+  chatHistory[currentId].push({role:'user',text:msg});
+  appendBubble('user',msg);
+  saveHistory();
+
+  // Typing indicator
+  document.getElementById('typingRow').classList.remove('hidden');
+  // Typing avatar
+  const typAvEl=document.getElementById('typingAvatar');
+  if(person?.photo_url) typAvEl.innerHTML=`<img src="${person.photo_url}" class="w-7 h-7 rounded-full object-cover">`;
+  else typAvEl.textContent=person?.gender==='M'?'👨':person?.gender==='F'?'👩':'🤖';
+
+  try{
+    const style=document.getElementById('styleMode').value;
+    const lang =document.getElementById('langMode').value;
+    const lenV =parseInt(document.getElementById('lenSlider').value);
+    const lenHint=['','Отвечай кратко (1-2 предложения).','Отвечай в 3-5 предложений.','Отвечай подробно (6-8 предложений).'][lenV]||'';
+
+    const resp=await fetch(`/api/chat/${currentId}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        message:msg,
+        history:(chatHistory[currentId]||[]).slice(-8),
+        style, lang, length_hint:lenHint
+      })
+    });
+    if(!resp.ok) throw new Error((await resp.json()).error||`HTTP ${resp.status}`);
+    const data=await resp.json();
+    const reply=data.reply||'…';
+
+    chatHistory[currentId].push({role:'avatar',text:reply});
+    appendBubble('avatar',reply);
+    saveHistory();
+
+    // Emotion
+    const emo=detectEmotion(reply);
+    if(emo) setEmotion(emo);
+
+    // Avatar animation
+    const wrap=document.getElementById('avWrap');
+    wrap.classList.add('av-talking');
+    setTimeout(()=>wrap.classList.remove('av-talking'),1800);
+
+    // Speech
+    if(document.getElementById('autoSpeak').checked){
+      speakText(reply, ()=>{ setEmotion(null); });
+    }
+  }catch(e){
+    chatHistory[currentId].push({role:'avatar',text:'⚠️ '+e.message});
+    appendBubble('avatar','⚠️ '+e.message);
+    saveHistory();
+    toast(e.message,'error');
+  }finally{
+    document.getElementById('typingRow').classList.add('hidden');
+    inp.disabled=false;
+    document.getElementById('sendBtn').disabled=false;
+    inp.focus();
+  }
+}
+
+/* ── SPEECH ── */
+function speakText(text, onEnd){
+  if(!synth||!voiceToggle.checked) return;
+  synth.cancel();
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='ru-RU';
+  utt.rate  =parseFloat(document.getElementById('rateSlider').value);
+  utt.pitch =parseFloat(document.getElementById('pitchSlider').value);
+  utt.volume=parseFloat(document.getElementById('volSlider').value);
+  const selName=document.getElementById('voiceSel').value;
+  if(selName){
+    const v=voices.find(v=>v.name===selName);
+    if(v) utt.voice=v;
+  }
+  const mouth=document.getElementById('avMouth');
+  const wrap =document.getElementById('avWrap');
+  utt.onstart=()=>{
+    speaking=true;
+    mouth.classList.add('mouth-speaking');
+    mouth.style.opacity='1';
+    wrap.classList.add('av-talking');
+  };
+  utt.onend=utt.onerror=()=>{
+    speaking=false;
+    mouth.classList.remove('mouth-speaking');
+    mouth.style.opacity='0';
+    wrap.classList.remove('av-talking');
+    if(onEnd) onEnd();
+  };
+  synth.speak(utt);
+}
+
+function testVoice(){
+  const nm=person?.full_name||(person?.name+' '+person?.surname)||'тестовый голос';
+  speakText(`Это тестовое сообщение. Меня зовут ${nm}.`);
+}
+
+function autoPitchByGender(){
+  if(!person) return;
+  const pitchEl=document.getElementById('pitchSlider');
+  const rateEl =document.getElementById('rateSlider');
+  if(person.gender==='M'){
+    pitchEl.value=.8; document.getElementById('pitchVal').textContent='0.80';
+    rateEl.value=.88; document.getElementById('rateVal').textContent='0.88';
+  } else if(person.gender==='F'){
+    pitchEl.value=1.2; document.getElementById('pitchVal').textContent='1.20';
+    rateEl.value=.92;  document.getElementById('rateVal').textContent='0.92';
+  }
+  // Age-based correction
+  if(person.birth_year){
+    const age=new Date().getFullYear()-person.birth_year;
+    if(age>70){
+      pitchEl.value=parseFloat(pitchEl.value)*.85;
+      rateEl.value =parseFloat(rateEl.value)*.85;
+      document.getElementById('pitchVal').textContent=parseFloat(pitchEl.value).toFixed(2);
+      document.getElementById('rateVal').textContent =parseFloat(rateEl.value).toFixed(2);
+    } else if(age<30){
+      rateEl.value=parseFloat(rateEl.value)*1.08;
+      document.getElementById('rateVal').textContent=parseFloat(rateEl.value).toFixed(2);
+    }
+  }
+}
+
+function applyPreset(key){
+  const p=PRESETS[key]; if(!p) return;
+  document.getElementById('rateSlider').value=p.rate;
+  document.getElementById('pitchSlider').value=p.pitch;
+  document.getElementById('volSlider').value=p.vol;
+  document.getElementById('rateVal').textContent=p.rate.toFixed(2);
+  document.getElementById('pitchVal').textContent=p.pitch.toFixed(2);
+  document.getElementById('volVal').textContent=p.vol.toFixed(2);
+  toast('Пресет применён','success');
+}
+
+/* ── Photo ── */
+async function uploadPhoto(file){
+  if(!currentId){ toast('Выберите человека','error'); return; }
+  if(file.size>10*1024*1024){ toast('Фото слишком большое (макс. 10 МБ)','error'); return; }
+  const fd=new FormData(); fd.append('photo',file);
+  try{
+    const r=await fetch(`/upload-photo/${currentId}`,{method:'POST',body:fd});
+    if(!r.ok) throw new Error((await r.json()).error||'Ошибка загрузки');
+    const d=await r.json();
+    const img=document.getElementById('avImg');
+    img.innerHTML=`<img src="${d.url}?t=${Date.now()}" class="w-full h-full object-cover">`;
+    if(person) person.photo_url=d.url;
+    toast('Фото обновлено','success');
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function delPhoto(){
+  if(!currentId){ toast('Выберите человека','error'); return; }
+  if(!person?.photo_url){ toast('Фото отсутствует','error'); return; }
+  if(!confirm('Удалить фото?')) return;
+  try{
+    const r=await fetch(`/api/person/${currentId}/photo`,{method:'DELETE'});
+    if(!r.ok) throw new Error((await r.json()).error||'Ошибка');
+    person.photo_url=null; updateAvatarUI();
+    toast('Фото удалено','success');
+  }catch(e){ toast(e.message,'error'); }
+}
+
+/* ── Toast ── */
+let toastTimer;
+function toast(msg,type='info'){
+  const el=document.getElementById('toast');
+  const cls={success:'bg-emerald-600 text-white',error:'bg-red-600 text-white',info:'bg-slate-800 text-white'};
+  el.className=`fixed bottom-6 right-5 z-[9999] px-5 py-3 rounded-xl shadow-xl text-sm font-medium transition-all duration-300 ${cls[type]||cls.info}`;
+  el.textContent=msg; el.style.opacity='1'; el.style.transform='translateY(0)';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(16px)'; },3200);
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  loadPersons();
+  updateLenLabel(2);
+  // Init voice toggle visual
+  voiceTrack.style.background='#10b981';
+  voiceThumb.style.transform='translateX(16px)';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Семейная хроника — Сохраняйте историю семьи</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b',
+                        },
+                        slate: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .gradient-hero {
+            background: linear-gradient(135deg, #ecfdf5 0%, #fef3c7 50%, #fff7ed 100%);
+        }
+        .dark .gradient-hero {
+            background: linear-gradient(135deg, #020617 0%, #064e3b 50%, #0f172a 100%);
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased">
+
+    <!-- Navigation (simple, без авторизации) -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white text-lg">Семейная хроника</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/login" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-emerald-600 transition">Войти</a>
+                <a href="/register" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition shadow-sm">Начать</a>
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    🌓
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero section -->
+    <section class="gradient-hero py-20 md:py-32">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6">Сохраните историю <span class="text-emerald-600">своей семьи</span></h1>
+            <p class="text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8">
+                Создайте интерактивное генеалогическое древо, оживите предков с помощью ИИ-аватаров, делитесь воспоминаниями с близкими.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="/register" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow-lg shadow-emerald-600/25">Начать бесплатно</a>
+                <a href="#features" class="px-6 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-semibold rounded-xl transition shadow-sm">Узнать больше</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-20 bg-white dark:bg-slate-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-slate-900 dark:text-white mb-12">Ключевые возможности</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">🌳</div>
+                    <h3 class="text-xl font-bold mb-2">Интерактивное древо</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Стройте красивое генеалогическое древо, масштабируйте, исследуйте связи.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold mb-2">ИИ-аватары</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Общайтесь с предками, задавайте вопросы, получайте ответы от первого лица с озвучкой.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">🖼️</div>
+                    <h3 class="text-xl font-bold mb-2">Семейная галерея</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Храните фото, видео, документы в едином месте, делитесь с родными.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">🗺️</div>
+                    <h3 class="text-xl font-bold mb-2">География событий</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Отмечайте места рождения, проживания, ключевые события на карте.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">👥</div>
+                    <h3 class="text-xl font-bold mb-2">Семейные группы</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Приглашайте родственников, вместе пополняйте историю семьи.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl p-6 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+                    <div class="text-4xl mb-4">🔒</div>
+                    <h3 class="text-xl font-bold mb-2">Приватность</h3>
+                    <p class="text-slate-600 dark:text-slate-400">Данные хранятся локально, вы контролируете доступ.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works (simple steps) -->
+    <section class="py-20 bg-slate-50 dark:bg-slate-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-slate-900 dark:text-white mb-12">Как это работает</h2>
+            <div class="flex flex-col md:flex-row justify-center gap-8 text-center">
+                <div class="flex-1">
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xl font-bold flex items-center justify-center mx-auto mb-4">1</div>
+                    <h3 class="font-bold text-lg mb-2">Регистрация</h3>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm">Создайте аккаунт и начните строить древо.</p>
+                </div>
+                <div class="flex-1">
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xl font-bold flex items-center justify-center mx-auto mb-4">2</div>
+                    <h3 class="font-bold text-lg mb-2">Добавьте людей</h3>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm">Вносите имена, даты, биографии, загружайте фото.</p>
+                </div>
+                <div class="flex-1">
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 text-xl font-bold flex items-center justify-center mx-auto mb-4">3</div>
+                    <h3 class="font-bold text-lg mb-2">Оживите предков</h3>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm">Включите ИИ-аватара и общайтесь с историей.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 bg-emerald-600 dark:bg-emerald-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">Начните сохранять историю своей семьи уже сегодня</h2>
+            <p class="text-emerald-100 mb-8">Присоединяйтесь к сообществу, где каждая семья важна.</p>
+            <a href="/register" class="inline-block px-8 py-3 bg-white text-emerald-700 font-bold rounded-xl shadow-lg hover:bg-slate-100 transition">Создать аккаунт</a>
+        </div>
+    </section>
+
+    <footer class="border-t border-slate-200 dark:border-slate-800 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
+            © 2026 Семейная хроника · Сохраняем историю вместе
+        </div>
+    </footer>
+
+    <script>
+        const root = document.documentElement;
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                root.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                root.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) setTheme('dark');
+        else setTheme('light');
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const isDark = root.classList.contains('dark');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+    </script>
+</body>
+</html>

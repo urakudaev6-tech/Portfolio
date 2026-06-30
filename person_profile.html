@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль — Семейная хроника</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',300:'#6ee7b7',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b'
+                        },
+                        slate: {
+                            50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter','system-ui','sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display:inline-block;
+            width:1rem;
+            height:1rem;
+            border:2px solid rgba(255,255,255,0.3);
+            border-top-color:white;
+            border-radius:50%;
+            animation:spin 0.6s linear infinite;
+            margin-right:0.5rem;
+        }
+        .dynamic-line {
+            display:flex;
+            gap:0.5rem;
+            align-items:center;
+            margin-top:0.25rem;
+        }
+        .dynamic-line input { flex:1; }
+        .dynamic-line button {
+            background:none;
+            border:none;
+            color:#dc2626;
+            cursor:pointer;
+            font-size:1.2rem;
+        }
+        .modal-open { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased min-h-screen flex flex-col">
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-2 shrink-0">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white text-lg hidden sm:inline">Семейная хроника</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-4 text-sm">
+                <a href="/" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🌳 Дерево</a>
+                <a href="/map" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🗺️ Карта</a>
+                <a href="/gallery" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🖼️ Галерея</a>
+                <a href="/profile" class="text-emerald-600 dark:text-emerald-400 font-medium">👤 Профиль</a>
+                <a href="/ai-avatars" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🤖 AI-аватары</a>
+                <a href="/settings" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">⚙️ Настройки</a>
+            </nav>
+            <div class="flex items-center gap-2">
+                <a href="/profile" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 transition">← Все люди</a>
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">🌓</button>
+                <a href="/logout" class="text-sm text-slate-500 hover:text-red-600 transition">Выйти</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div id="profile-card" class="space-y-6">
+            <div class="text-center py-16 text-slate-400">
+                <div class="spinner" style="border-top-color:#10b981;border-color:rgba(16,185,129,0.3);margin:0 auto 1rem;width:2rem;height:2rem;"></div>
+                Загрузка профиля...
+            </div>
+        </div>
+    </main>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ========== -->
+    <div id="editModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm opacity-0 invisible transition-all duration-200 overflow-y-auto py-6">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl p-6 m-4">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">✏️ Редактировать профиль</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none w-8 h-8 flex items-center justify-center">&times;</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Имя *</label>
+                    <input type="text" id="edit_name" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Фамилия *</label>
+                    <input type="text" id="edit_surname" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Девичья фамилия</label>
+                    <input type="text" id="edit_maiden_name" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Пол</label>
+                    <select id="edit_gender" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <option value="U">Не указан</option>
+                        <option value="M">Мужской</option>
+                        <option value="F">Женский</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Дата рождения</label>
+                    <input type="date" id="edit_birth_date" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Дата смерти</label>
+                    <input type="date" id="edit_death_date" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Место рождения</label>
+                    <input type="text" id="edit_birth_place" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Место смерти</label>
+                    <input type="text" id="edit_death_place" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Профессия</label>
+                    <input type="text" id="edit_profession" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Отец</label>
+                    <select id="edit_father_id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <option value="">— не указан —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Мать</label>
+                    <select id="edit_mother_id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <option value="">— не указана —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Супруг(а)</label>
+                    <select id="edit_spouse_id" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <option value="">— не указан(а) —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Биография</label>
+                <textarea id="edit_bio" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-emerald-500 text-sm resize-y"></textarea>
+            </div>
+            <div class="mt-4">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Фото профиля</label>
+                <div class="flex items-center gap-3">
+                    <button onclick="document.getElementById('edit_photo_input').click()" class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">📷 Загрузить фото</button>
+                    <button id="deletePhotoBtn" onclick="deletePhoto()" class="px-3 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 text-red-600 rounded-lg text-sm transition">🗑 Удалить фото</button>
+                    <input type="file" id="edit_photo_input" accept="image/*" class="hidden" onchange="uploadPhotoInline(this.files[0])">
+                    <span id="photoStatus" class="text-xs text-slate-400"></span>
+                </div>
+            </div>
+            <div id="editError" class="hidden mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600"></div>
+            <div class="flex gap-3 mt-6">
+                <button id="saveEditBtn" onclick="saveEdit()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg transition font-medium">💾 Сохранить изменения</button>
+                <button onclick="closeEditModal()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО СОБЫТИЙ / КОНТРОЛЬНЫХ ТОЧЕК ========== -->
+    <div id="checkpointModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm opacity-0 invisible transition-all duration-200 overflow-y-auto py-6">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-xl p-6 m-4">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">📝 Контрольные точки биографии</h3>
+                <button onclick="closeCheckpointModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none w-8 h-8 flex items-center justify-center">&times;</button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Заполните известные факты — ИИ создаст литературную биографию. Все данные сохранятся как события.</p>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Год рождения</label>
+                        <input type="number" id="cb_birth_year" placeholder="напр. 1923" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Место рождения</label>
+                        <input type="text" id="cb_birth_place" placeholder="напр. Киев" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Год смерти</label>
+                        <input type="number" id="cb_death_year" placeholder="если применимо" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Место смерти</label>
+                        <input type="text" id="cb_death_place" placeholder="если применимо" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Профессия / Деятельность</label>
+                    <div id="occupation-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('occupation')">+ Добавить</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Место жительства</label>
+                    <div id="residence-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('residence')">+ Добавить</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Образование</label>
+                    <div id="education-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('education')">+ Добавить</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Брак / Семья</label>
+                    <div id="marriage-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('marriage')">+ Добавить</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Дети</label>
+                    <div id="children-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('children')">+ Добавить</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Дополнительные факты</label>
+                    <div id="notes-container"></div>
+                    <button class="text-sm text-emerald-600 hover:text-emerald-700 mt-1 flex items-center gap-1" onclick="addDynamicLine('notes')">+ Добавить</button>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button id="generateFromChecklistBtn" onclick="generateFromChecklist()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg transition font-medium">🤖 Создать биографию</button>
+                <button onclick="closeCheckpointModal()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition">Закрыть</button>
+            </div>
+            <div id="generatedBioPreview" class="hidden mt-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-sm whitespace-pre-wrap leading-relaxed border border-slate-200 dark:border-slate-700"></div>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО ХАРАКТЕРА ========== -->
+    <div id="personalityModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 invisible transition-all duration-200">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 m-4">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">🧠 Черты характера</h3>
+                <button onclick="closePersonalityModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none">&times;</button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Используется аватаром для генерации ответов. Оцените от 0 до 10.</p>
+            <div class="space-y-3" id="personalitySliders"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="autoEvaluatePersonality()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">⚡ Авто-оценка</button>
+                <button onclick="savePersonality()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg transition font-medium">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-20 right-6 z-[100] opacity-0 transform translate-x-full transition-all duration-300 px-5 py-3 rounded-lg shadow-lg text-sm pointer-events-none text-white"></div>
+
+    <script>
+        const personId = {{ person_id | tojson }};
+        let allPersons = [];
+        let currentPerson = null;
+        const dynamicTypes = ['occupation','residence','education','marriage','children','notes'];
+        const TRAITS = [
+            {key:'friendliness', label:'Дружелюбие', emoji:'😊'},
+            {key:'emotionality', label:'Эмоциональность', emoji:'❤️'},
+            {key:'strictness', label:'Строгость', emoji:'📏'},
+            {key:'talkativeness', label:'Разговорчивость', emoji:'💬'},
+            {key:'traditionalism', label:'Традиционность', emoji:'📜'},
+            {key:'humor', label:'Юмор', emoji:'😄'},
+            {key:'curiosity', label:'Любознательность', emoji:'🔍'},
+        ];
+
+        // Тема
+        const root = document.documentElement;
+        function setTheme(t) { t==='dark' ? root.classList.add('dark') : root.classList.remove('dark'); localStorage.setItem('theme',t); }
+        const st = localStorage.getItem('theme');
+        if (st==='dark' || (!st && window.matchMedia('(prefers-color-scheme: dark)').matches)) setTheme('dark'); else setTheme('light');
+        document.getElementById('themeToggle').addEventListener('click', () => setTheme(root.classList.contains('dark') ? 'light' : 'dark'));
+
+        // Тост
+        function showToast(msg, type='info') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `fixed top-20 right-6 z-[100] opacity-100 transform translate-x-0 transition-all duration-300 px-5 py-3 rounded-lg shadow-lg text-sm pointer-events-none text-white ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':'bg-slate-700'}`;
+            setTimeout(() => {
+                t.classList.add('opacity-0','translate-x-full');
+                t.classList.remove('opacity-100','translate-x-0');
+            }, 3000);
+        }
+
+        // Загрузка профиля
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/persons');
+                if (!res.ok) throw new Error('Ошибка загрузки данных');
+                allPersons = await res.json();
+                currentPerson = allPersons.find(p => p.id == personId);
+                if (!currentPerson) {
+                    document.getElementById('profile-card').innerHTML = '<div class="bg-white dark:bg-slate-900 rounded-2xl p-8 text-center"><p class="text-red-600">Человек с таким ID не найден.</p><a href="/profile" class="mt-4 inline-block text-emerald-600 hover:underline">← Ко всем людям</a></div>';
+                    return;
+                }
+                renderProfile();
+            } catch(e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        function getFamily() {
+            if (!currentPerson) return {};
+            // Поддерживаем как father_id/mother_id так и parent_id
+            const father = allPersons.find(p => p.id == currentPerson.father_id) || allPersons.find(p => p.id == currentPerson.parent_id && p.gender === 'M');
+            const mother = allPersons.find(p => p.id == currentPerson.mother_id) || (father ? allPersons.find(p => p.id == father.spouse_id && p.id !== father.id) : null);
+            const spouse = allPersons.find(p => p.id == currentPerson.spouse_id);
+            // Дети: те кто указал этого человека отцом, матерью или parent_id
+            const children = allPersons.filter(p => p.id != currentPerson.id && (
+                p.father_id == currentPerson.id ||
+                p.mother_id == currentPerson.id ||
+                p.parent_id == currentPerson.id
+            ));
+            // Братья/сёстры: общий отец или мать
+            const siblings = allPersons.filter(p => {
+                if (p.id == currentPerson.id) return false;
+                if (currentPerson.father_id && p.father_id == currentPerson.father_id) return true;
+                if (currentPerson.mother_id && p.mother_id == currentPerson.mother_id) return true;
+                if (currentPerson.parent_id && p.parent_id == currentPerson.parent_id) return true;
+                return false;
+            });
+            // Дедушки/бабушки
+            const grandparents = [];
+            if (father) {
+                const gf = allPersons.find(p => p.id == father.father_id || p.id == father.parent_id && p.gender==='M');
+                const gm = allPersons.find(p => p.id == father.mother_id);
+                if (gf) grandparents.push({person: gf, via: father.full_name});
+                if (gm) grandparents.push({person: gm, via: father.full_name});
+            }
+            if (mother) {
+                const gf = allPersons.find(p => p.id == mother.father_id);
+                const gm = allPersons.find(p => p.id == mother.mother_id);
+                if (gf) grandparents.push({person: gf, via: mother.full_name});
+                if (gm) grandparents.push({person: gm, via: mother.full_name});
+            }
+            return { father, mother, spouse, children, siblings, grandparents };
+        }
+
+        function personLink(p) {
+            return `<a href="/profile/${p.id}" class="text-emerald-600 hover:underline">${p.full_name}</a>`;
+        }
+
+        function renderProfile() {
+            const p = currentPerson;
+            const genderColor = p.gender==='M' ? '#3b82f6' : p.gender==='F' ? '#ec4899' : '#94a3b8';
+            const { father, mother, spouse, children, siblings, grandparents } = getFamily();
+
+            let birthStr = 'не указана';
+            if (p.birth_date) {
+                const parts = p.birth_date.split('-');
+                if (parts.length===3) birthStr = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                else birthStr = p.birth_date;
+            }
+            const lifespan = `${p.birth_year||'?'}${p.death_year?' – '+p.death_year:''}`;
+
+            let html = `
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                    <div class="relative group flex-shrink-0">
+                        <div class="w-28 h-28 rounded-full overflow-hidden shadow-lg flex items-center justify-center text-5xl" style="background:${genderColor}">
+                            ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='👤'">` : '👤'}
+                        </div>
+                    </div>
+                    <div class="flex-1 text-center sm:text-left">
+                        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight">
+                            ${p.full_name}${p.maiden_name ? ` <span class="text-base font-normal text-slate-400">(урожд. ${p.maiden_name})</span>` : ''}
+                        </h1>
+                        <div class="flex flex-wrap gap-3 mt-2 justify-center sm:justify-start">
+                            <span class="text-slate-500 text-sm">⏳ ${lifespan}</span>
+                            ${p.birth_date ? `<span class="text-slate-500 text-sm">📅 ${birthStr}</span>` : ''}
+                            ${p.gender==='M' ? '<span class="text-blue-500 text-sm">♂ Мужчина</span>' : p.gender==='F' ? '<span class="text-pink-500 text-sm">♀ Женщина</span>' : ''}
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start text-sm text-slate-600 dark:text-slate-400">
+                            ${p.birth_place ? `<span>📍 ${p.birth_place}</span>` : ''}
+                            ${p.death_place ? `<span>🕯 ${p.death_place}</span>` : ''}
+                            ${p.profession ? `<span>💼 ${p.profession}</span>` : ''}
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">
+                            <button onclick="openEditModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition flex items-center gap-1.5">✏️ Редактировать</button>
+                            <button onclick="openPersonalityModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition flex items-center gap-1.5">🧠 Характер</button>
+                            <a href="/ai-avatars?person=${p.id}" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition flex items-center gap-1.5">🤖 Открыть аватар</a>
+                            <button onclick="setAsRoot(${p.id})" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg text-sm transition">🌱 Корень</button>
+                            <button onclick="deletePerson(${p.id})" class="px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 rounded-lg text-sm transition">🗑 Удалить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+            // Семья
+            const hasFamily = father || mother || spouse || children.length || siblings.length || grandparents.length;
+            if (hasFamily) {
+                html += `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2 border-l-4 border-emerald-500 pl-3">👨‍👩‍👧‍👦 Семья</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        ${father ? `<div class="flex items-center gap-2"><span class="text-slate-500 w-24 shrink-0">Отец:</span> ${personLink(father)}</div>` : ''}
+                        ${mother ? `<div class="flex items-center gap-2"><span class="text-slate-500 w-24 shrink-0">Мать:</span> ${personLink(mother)}</div>` : ''}
+                        ${spouse ? `<div class="flex items-center gap-2"><span class="text-slate-500 w-24 shrink-0">Супруг(а):</span> ${personLink(spouse)}</div>` : ''}
+                        ${children.length ? `<div class="sm:col-span-2 flex flex-wrap items-start gap-1"><span class="text-slate-500 w-24 shrink-0">Дети (${children.length}):</span><span class="flex flex-wrap gap-1">${children.map(c=>personLink(c)).join(', ')}</span></div>` : ''}
+                        ${siblings.length ? `<div class="sm:col-span-2 flex flex-wrap items-start gap-1"><span class="text-slate-500 w-24 shrink-0">Братья/сёстры:</span><span class="flex flex-wrap gap-1">${siblings.map(s=>personLink(s)).join(', ')}</span></div>` : ''}
+                        ${grandparents.length ? `<div class="sm:col-span-2 flex flex-wrap items-start gap-1"><span class="text-slate-500 w-24 shrink-0">Дедушки/бабушки:</span><span class="flex flex-wrap gap-1">${grandparents.map(g=>`${personLink(g.person)} <span class="text-slate-400">(по ${g.via})</span>`).join(', ')}</span></div>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            // Биография
+            const bioText = p.bio || buildAutoBio();
+            html += `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2 border-l-4 border-emerald-500 pl-3">📜 Биография</h2>
+                <div id="biography-text" class="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed text-sm">${bioText || '<span class="text-slate-400 italic">Биография не заполнена.</span>'}</div>
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button onclick="copyBiography()" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">📋 Копировать</button>
+                    <button onclick="openCheckpointModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition">📝 Контрольные точки + ИИ</button>
+                    <button id="ai-generate-btn" onclick="generateWithAI()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition">🤖 Генерировать нейросетью</button>
+                </div>
+            </div>`;
+
+            // События
+            html += `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-l-4 border-emerald-500 pl-3">📅 События жизни</h2>
+                    <button onclick="openAddEventModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition">+ Добавить</button>
+                </div>
+                <div id="eventsList" class="space-y-2 text-sm"><div class="text-slate-400 italic">Загрузка...</div></div>
+            </div>`;
+
+            document.getElementById('profile-card').innerHTML = html;
+            loadEvents();
+        }
+
+        function buildAutoBio() {
+            const p = currentPerson;
+            if (!p) return '';
+            const { father, mother, spouse, children } = getFamily();
+            let bio = '';
+            if (p.birth_year) bio += `Родился${p.gender==='F'?'ась':''} в ${p.birth_year} году`;
+            if (p.birth_place) bio += ` в ${p.birth_place}`;
+            bio += '. ';
+            if (father || mother) bio += `Родители: ${[father,mother].filter(Boolean).map(x=>x.full_name).join(' и ')}. `;
+            if (p.profession) bio += `Профессия: ${p.profession}. `;
+            if (spouse) bio += `Супруг${p.gender==='F'?'а':'(а)'}: ${spouse.full_name}. `;
+            if (children.length) bio += `Дети: ${children.map(c=>c.full_name).join(', ')}. `;
+            if (p.death_year) bio += `Умер${p.gender==='F'?'ла':''} в ${p.death_year} году${p.death_place?' в '+p.death_place:''}. `;
+            return bio.trim();
+        }
+
+        // События
+        const EVENT_LABELS = {
+            birth:'Рождение',
+            death:'Смерть',
+            occupation:'Профессия',
+            residence:'Место жительства',
+            education:'Образование',
+            marriage:'Брак',
+            children:'Дети',
+            notes:'Заметки'
+        };
+
+        async function loadEvents() {
+            try {
+                const res = await fetch(`/api/person/${personId}/events`);
+                if (!res.ok) throw new Error();
+                const events = await res.json();
+                const el = document.getElementById('eventsList');
+                if (!events.length) {
+                    el.innerHTML = '<div class="text-slate-400 italic">Нет записанных событий</div>';
+                    return;
+                }
+                el.innerHTML = events.map(e => `
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 group">
+                        <div class="flex-1">
+                            <span class="font-medium text-slate-700 dark:text-slate-300">${EVENT_LABELS[e.event_type]||e.event_type}</span>
+                            ${e.year_start ? `<span class="text-slate-500 ml-2">${e.year_start}${e.year_end&&e.year_end!==e.year_start?' – '+e.year_end:''}</span>` : ''}
+                            ${e.place ? `<span class="text-slate-500 ml-2">📍 ${e.place}</span>` : ''}
+                            ${e.description ? `<div class="text-slate-500 mt-0.5">${e.description}</div>` : ''}
+                        </div>
+                        <button onclick="deleteEvent(${e.id})" class="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700 text-lg leading-none">×</button>
+                    </div>
+                `).join('');
+            } catch {
+                document.getElementById('eventsList').innerHTML = '<div class="text-red-500">Ошибка загрузки событий</div>';
+            }
+        }
+
+        async function deleteEvent(id) {
+            if (!confirm('Удалить событие?')) return;
+            try {
+                const r = await fetch(`/api/event/${id}`, { method:'DELETE' });
+                if (!r.ok) throw new Error();
+                showToast('Событие удалено', 'success');
+                loadEvents();
+            } catch {
+                showToast('Ошибка удаления', 'error');
+            }
+        }
+
+        // Добавление события (простое inline)
+        function openAddEventModal() {
+            const types = Object.entries(EVENT_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+            const html = `
+                <div id="addEventInline" class="mt-3 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl space-y-3">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="text-xs text-slate-500 uppercase font-semibold mb-1 block">Тип</label>
+                        <select id="ae_type" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-700 text-sm">${types}</select></div>
+                        <div><label class="text-xs text-slate-500 uppercase font-semibold mb-1 block">Год начала</label>
+                        <input type="number" id="ae_year" placeholder="напр. 1945" class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-700 text-sm"></div>
+                    </div>
+                    <div><label class="text-xs text-slate-500 uppercase font-semibold mb-1 block">Место</label>
+                    <input type="text" id="ae_place" placeholder="Город, страна..." class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-700 text-sm"></div>
+                    <div><label class="text-xs text-slate-500 uppercase font-semibold mb-1 block">Описание</label>
+                    <input type="text" id="ae_desc" placeholder="Подробности..." class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-700 text-sm"></div>
+                    <div class="flex gap-2">
+                        <button onclick="saveEvent()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-sm transition">Сохранить</button>
+                        <button onclick="document.getElementById('addEventInline').remove()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">Отмена</button>
+                    </div>
+                </div>`;
+            const evList = document.getElementById('eventsList');
+            const old = document.getElementById('addEventInline');
+            if (old) old.remove();
+            evList.insertAdjacentHTML('afterend', html);
+        }
+
+        async function saveEvent() {
+            const type = document.getElementById('ae_type').value;
+            const year = document.getElementById('ae_year').value;
+            const place = document.getElementById('ae_place').value.trim();
+            const desc = document.getElementById('ae_desc').value.trim();
+            try {
+                const r = await fetch(`/api/person/${personId}/events`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        event_type:type,
+                        year_start: year?parseInt(year):null,
+                        place:place||null,
+                        description:desc||null
+                    })
+                });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                showToast('Событие добавлено','success');
+                document.getElementById('addEventInline')?.remove();
+                loadEvents();
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // Редактирование персоны
+        function openEditModal() {
+            const p = currentPerson;
+            document.getElementById('edit_name').value = p.name || '';
+            document.getElementById('edit_surname').value = p.surname || '';
+            document.getElementById('edit_maiden_name').value = p.maiden_name || '';
+            document.getElementById('edit_gender').value = p.gender || 'U';
+            document.getElementById('edit_birth_date').value = p.birth_date || '';
+            document.getElementById('edit_death_date').value = p.death_date || '';
+            document.getElementById('edit_birth_place').value = p.birth_place || '';
+            document.getElementById('edit_death_place').value = p.death_place || '';
+            document.getElementById('edit_profession').value = p.profession || '';
+            document.getElementById('edit_bio').value = p.bio || '';
+            document.getElementById('photoStatus').textContent = p.photo_url ? '✓ фото загружено' : '';
+            document.getElementById('editError').classList.add('hidden');
+
+            // Заполняем списки людей (исключая текущего)
+            const options = '<option value="">— не указан —</option>' + allPersons.filter(x => x.id != personId)
+                .map(x => `<option value="${x.id}">${x.full_name} (${x.birth_year||'?'})</option>`).join('');
+            ['edit_father_id','edit_mother_id','edit_spouse_id'].forEach(id => {
+                document.getElementById(id).innerHTML = options;
+            });
+            document.getElementById('edit_father_id').value = p.father_id || p.parent_id || '';
+            document.getElementById('edit_mother_id').value = p.mother_id || '';
+            document.getElementById('edit_spouse_id').value = p.spouse_id || '';
+
+            showModal('editModal');
+        }
+        function closeEditModal() { hideModal('editModal'); }
+
+        async function saveEdit() {
+            const name = document.getElementById('edit_name').value.trim();
+            const surname = document.getElementById('edit_surname').value.trim();
+            if (!name || !surname) {
+                document.getElementById('editError').textContent = 'Имя и фамилия обязательны';
+                document.getElementById('editError').classList.remove('hidden');
+                return;
+            }
+            const btn = document.getElementById('saveEditBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Сохранение...';
+            try {
+                const body = {
+                    name, surname,
+                    maiden_name: document.getElementById('edit_maiden_name').value.trim() || null,
+                    gender: document.getElementById('edit_gender').value,
+                    birth_date: document.getElementById('edit_birth_date').value || null,
+                    death_date: document.getElementById('edit_death_date').value || null,
+                    birth_place: document.getElementById('edit_birth_place').value.trim() || null,
+                    death_place: document.getElementById('edit_death_place').value.trim() || null,
+                    profession: document.getElementById('edit_profession').value.trim() || null,
+                    bio: document.getElementById('edit_bio').value.trim() || null,
+                    father_id: document.getElementById('edit_father_id').value || null,
+                    mother_id: document.getElementById('edit_mother_id').value || null,
+                    spouse_id: document.getElementById('edit_spouse_id').value || null,
+                };
+                const r = await fetch(`/api/person/${personId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok) throw new Error((await r.json()).error || 'Ошибка сохранения');
+                showToast('Профиль обновлён','success');
+                closeEditModal();
+                await loadProfile();
+            } catch(e) {
+                document.getElementById('editError').textContent = e.message;
+                document.getElementById('editError').classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '💾 Сохранить изменения';
+            }
+        }
+
+        async function uploadPhotoInline(file) {
+            if (!file) return;
+            document.getElementById('photoStatus').textContent = '⏳ Загрузка...';
+            const fd = new FormData();
+            fd.append('photo', file);
+            try {
+                const r = await fetch(`/upload-photo/${personId}`, { method:'POST', body:fd });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                const data = await r.json();
+                document.getElementById('photoStatus').textContent = '✓ Фото загружено';
+                currentPerson.photo_url = data.url;
+                showToast('Фото обновлено','success');
+            } catch(e) {
+                document.getElementById('photoStatus').textContent = '✕ Ошибка';
+                showToast(e.message,'error');
+            }
+        }
+
+        async function deletePhoto() {
+            if (!currentPerson.photo_url) {
+                showToast('Фото не загружено','error');
+                return;
+            }
+            if (!confirm('Удалить фото?')) return;
+            try {
+                const r = await fetch(`/api/person/${personId}/photo`, { method:'DELETE' });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                currentPerson.photo_url = null;
+                document.getElementById('photoStatus').textContent = '';
+                showToast('Фото удалено','success');
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // Характер
+        async function openPersonalityModal() {
+            let personality = {};
+            try {
+                const r = await fetch(`/api/person/${personId}/personality`);
+                if (r.ok) personality = await r.json();
+            } catch {}
+            const container = document.getElementById('personalitySliders');
+            container.innerHTML = TRAITS.map(t => {
+                const val = personality[t.key] ?? 5;
+                return `<div class="flex items-center gap-3">
+                    <span class="w-36 text-sm text-slate-700 dark:text-slate-300 shrink-0">${t.emoji} ${t.label}</span>
+                    <input type="range" min="0" max="10" step="1" value="${val}" id="trait_${t.key}" oninput="document.getElementById('tv_${t.key}').textContent=this.value" class="flex-1 accent-emerald-500">
+                    <span id="tv_${t.key}" class="text-sm font-mono w-5 text-slate-600 dark:text-slate-400">${val}</span>
+                </div>`;
+            }).join('');
+            showModal('personalityModal');
+        }
+        function closePersonalityModal() { hideModal('personalityModal'); }
+
+        async function autoEvaluatePersonality() {
+            try {
+                const r = await fetch(`/api/person/${personId}/personality/auto`);
+                if (!r.ok) throw new Error();
+                const data = await r.json();
+                TRAITS.forEach(t => {
+                    const slider = document.getElementById(`trait_${t.key}`);
+                    const label = document.getElementById(`tv_${t.key}`);
+                    if (slider && data[t.key] !== undefined) {
+                        slider.value = data[t.key];
+                        label.textContent = data[t.key];
+                    }
+                });
+                showToast('Авто-оценка выполнена','success');
+            } catch {
+                showToast('Ошибка авто-оценки (Ollama?)','error');
+            }
+        }
+
+        async function savePersonality() {
+            const body = {};
+            TRAITS.forEach(t => body[t.key] = parseInt(document.getElementById(`trait_${t.key}`).value));
+            try {
+                const r = await fetch(`/api/person/${personId}/personality`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(body)
+                });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                showToast('Характер сохранён','success');
+                closePersonalityModal();
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // AI биография
+        async function generateWithAI() {
+            const btn = document.getElementById('ai-generate-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Генерация...';
+            try {
+                const r = await fetch(`/api/generate-bio/${personId}`, { method:'POST' });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка генерации');
+                const data = await r.json();
+                document.getElementById('biography-text').innerText = data.biography;
+                showToast('Биография сгенерирована','success');
+            } catch(e) {
+                showToast(e.message,'error');
+            } finally {
+                btn.disabled=false;
+                btn.innerHTML='🤖 Генерировать нейросетью';
+            }
+        }
+
+        function copyBiography() {
+            const text = document.getElementById('biography-text').innerText;
+            navigator.clipboard.writeText(text).then(()=>showToast('Скопировано','success')).catch(()=>showToast('Ошибка','error'));
+        }
+
+        function setAsRoot(id) {
+            localStorage.setItem('tempRootId', id);
+            window.location.href = '/';
+        }
+
+        async function deletePerson(id) {
+            if (!confirm('Удалить человека и все его связи? Это необратимо.')) return;
+            try {
+                const r = await fetch(`/api/person/${id}`, { method:'DELETE' });
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка');
+                showToast('Человек удалён','success');
+                setTimeout(() => window.location.href = '/profile', 1000);
+            } catch(e) {
+                showToast(e.message,'error');
+            }
+        }
+
+        // Контрольные точки
+        const dynamicTypeLabels = {occupation:'профессию',residence:'место',education:'образование',marriage:'брак',children:'ребёнка',notes:'заметку'};
+        function createLine(value='') {
+            const div = document.createElement('div');
+            div.className='dynamic-line';
+            const input = document.createElement('input');
+            input.type='text';
+            input.placeholder='Введите значение...';
+            input.value=value;
+            input.className='flex-1 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm';
+            const del = document.createElement('button');
+            del.innerHTML='✕';
+            del.onclick=()=>div.remove();
+            div.appendChild(input);
+            div.appendChild(del);
+            return div;
+        }
+
+        function addDynamicLine(type, value='') {
+            document.getElementById(`${type}-container`).appendChild(createLine(value));
+        }
+
+        function getDynamicValues(type) {
+            return Array.from(document.getElementById(`${type}-container`).querySelectorAll('input'))
+                .map(i=>i.value.trim()).filter(v=>v);
+        }
+
+        async function openCheckpointModal() {
+            dynamicTypes.forEach(t => document.getElementById(`${t}-container`).innerHTML='');
+            const p = currentPerson;
+            if (p) {
+                document.getElementById('cb_birth_year').value = p.birth_year || '';
+                document.getElementById('cb_birth_place').value = p.birth_place || '';
+                document.getElementById('cb_death_year').value = p.death_year || '';
+                document.getElementById('cb_death_place').value = p.death_place || '';
+            }
+            try {
+                const events = await fetch(`/api/person/${personId}/events`).then(r=>r.json());
+                dynamicTypes.forEach(type => {
+                    events.filter(e=>e.event_type===type).forEach(e=>addDynamicLine(type, e.description||''));
+                    if (!document.getElementById(`${type}-container`).children.length) addDynamicLine(type);
+                });
+            } catch {
+                dynamicTypes.forEach(t=>addDynamicLine(t));
+            }
+            showModal('checkpointModal');
+        }
+
+        function closeCheckpointModal() { hideModal('checkpointModal'); }
+
+        async function generateFromChecklist() {
+            const btn = document.getElementById('generateFromChecklistBtn');
+            btn.disabled=true;
+            btn.innerHTML='<span class="spinner"></span> Создаю биографию...';
+            const facts = [];
+            const eventPromises = [];
+
+            try {
+                const oldEvents = await fetch(`/api/person/${personId}/events`).then(r=>r.json());
+                await Promise.all(oldEvents.map(e=>fetch(`/api/event/${e.id}`,{method:'DELETE'})));
+            } catch {}
+
+            const bYear = document.getElementById('cb_birth_year').value.trim();
+            const bPlace = document.getElementById('cb_birth_place').value.trim();
+            if (bYear||bPlace) {
+                if (bYear) facts.push(`Год рождения: ${bYear}`);
+                if (bPlace) facts.push(`Место рождения: ${bPlace}`);
+                eventPromises.push(fetch(`/api/person/${personId}/events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'birth',year_start:bYear?parseInt(bYear):null,place:bPlace||null,description:''})}));
+            }
+
+            const dYear = document.getElementById('cb_death_year').value.trim();
+            const dPlace = document.getElementById('cb_death_place').value.trim();
+            if (dYear||dPlace) {
+                if (dYear) facts.push(`Год смерти: ${dYear}`);
+                if (dPlace) facts.push(`Место смерти: ${dPlace}`);
+                eventPromises.push(fetch(`/api/person/${personId}/events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'death',year_start:dYear?parseInt(dYear):null,place:dPlace||null,description:''})}));
+            }
+
+            dynamicTypes.forEach(type => {
+                getDynamicValues(type).forEach(val => {
+                    facts.push(`${type}: ${val}`);
+                    eventPromises.push(fetch(`/api/person/${personId}/events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:type,year_start:null,place:null,description:val})}));
+                });
+            });
+
+            if (!facts.length) {
+                showToast('Заполните хотя бы одно поле','error');
+                btn.disabled=false;
+                btn.innerHTML='🤖 Создать биографию';
+                return;
+            }
+
+            try {
+                await Promise.all(eventPromises);
+                const r = await fetch(`/api/generate-bio/${personId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({facts})});
+                if (!r.ok) throw new Error((await r.json()).error||'Ошибка ИИ');
+                const data = await r.json();
+                const preview = document.getElementById('generatedBioPreview');
+                preview.classList.remove('hidden');
+                preview.innerText = data.biography;
+                const bioEl = document.getElementById('biography-text');
+                if (bioEl) bioEl.innerText = data.biography;
+                showToast('Биография создана','success');
+                loadEvents();
+            } catch(e) {
+                showToast(e.message,'error');
+            } finally {
+                btn.disabled=false;
+                btn.innerHTML='🤖 Создать биографию';
+            }
+        }
+
+        // Утилиты модальных окон
+        function showModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('opacity-0','invisible');
+            m.classList.add('opacity-100','visible');
+            document.body.classList.add('modal-open');
+        }
+        function hideModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('opacity-0','invisible');
+            m.classList.remove('opacity-100','visible');
+            document.body.classList.remove('modal-open');
+        }
+
+        // Закрытие по клику на оверлей
+        ['editModal','checkpointModal','personalityModal'].forEach(id => {
+            document.getElementById(id).addEventListener('click', function(e) {
+                if (e.target === this) hideModal(id);
+            });
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key==='Escape') ['editModal','checkpointModal','personalityModal'].forEach(hideModal);
+        });
+
+        document.addEventListener('DOMContentLoaded', loadProfile);
+
+        // Глобальные экспорты
+        window.closeEditModal=closeEditModal;
+        window.closeCheckpointModal=closeCheckpointModal;
+        window.closePersonalityModal=closePersonalityModal;
+        window.openEditModal=openEditModal;
+        window.openCheckpointModal=openCheckpointModal;
+        window.openPersonalityModal=openPersonalityModal;
+        window.addDynamicLine=addDynamicLine;
+        window.generateFromChecklist=generateFromChecklist;
+        window.saveEdit=saveEdit;
+        window.deletePerson=deletePerson;
+        window.setAsRoot=setAsRoot;
+        window.copyBiography=copyBiography;
+        window.generateWithAI=generateWithAI;
+        window.autoEvaluatePersonality=autoEvaluatePersonality;
+        window.savePersonality=savePersonality;
+        window.deleteEvent=deleteEvent;
+        window.openAddEventModal=openAddEventModal;
+        window.saveEvent=saveEvent;
+        window.uploadPhotoInline=uploadPhotoInline;
+        window.deletePhoto=deletePhoto;
+    </script>
+</body>
+</html>

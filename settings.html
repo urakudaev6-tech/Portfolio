@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки — Семейная хроника</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b',
+                        },
+                        slate: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom spinner */
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .status-dot {
+            display: inline-block;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        .status-dot.online { background-color: #10b981; }
+        .status-dot.offline { background-color: #ef4444; }
+        .toast {
+            transition: opacity 0.2s, transform 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased flex flex-col min-h-screen">
+
+    <!-- Header / Navigation -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white text-lg">Семейная хроника</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-4 text-sm">
+                <a href="/" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🌳 Дерево</a>
+                <a href="/map" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🗺️ Карта</a>
+                <a href="/gallery" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🖼️ Галерея</a>
+                <a href="/profile" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">👤 Профиль</a>
+                <a href="/ai-avatars" class="text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition">🤖 AI-аватары</a>
+                <a href="/settings" class="text-emerald-600 dark:text-emerald-400 font-medium">⚙️ Настройки</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    🌓
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-8">
+        <!-- AI Settings -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">🤖 Параметры ИИ</h2>
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="text-sm font-medium w-32">Модель Ollama:</label>
+                    <select id="modelSelect" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500 flex-1 min-w-[180px]"></select>
+                    <input type="text" id="customModel" placeholder="или введите вручную" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm flex-1 min-w-[160px]">
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <label class="text-sm font-medium w-32">Температура:</label>
+                    <input type="range" id="tempSlider" min="0.1" max="1.0" step="0.1" value="0.7" class="w-48">
+                    <span id="tempVal" class="text-sm font-mono w-10">0.7</span>
+                    <button id="applyTempBtn" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition">Применить</button>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span id="ollamaStatus" class="text-sm flex items-center"><span class="status-dot offline"></span> Статус неизвестен</span>
+                    <button id="checkOllamaBtn" class="px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">Проверить связь</button>
+                    <div id="ollamaSpinner" class="spinner hidden"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3">💾 Экспорт данных</h2>
+            <button id="exportBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition">Скачать всю базу данных (JSON)</button>
+        </div>
+
+        <!-- Photos Management -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3">🖼️ Загруженные фотографии</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="border-b border-slate-200 dark:border-slate-700">
+                        <tr><th class="text-left py-2 px-2">Файл</th><th class="text-left py-2 px-2">Персона</th><th class="text-left py-2 px-2">Действия</th></tr>
+                    </thead>
+                    <tbody id="photosTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3">📊 Информация о системе</h2>
+            <pre id="systemInfo" class="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded-lg overflow-x-auto">Загрузка...</pre>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3">⚠️ Обслуживание</h2>
+            <div class="flex flex-wrap gap-3">
+                <button id="resetDbBtn" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">Сбросить базу данных</button>
+                <button id="clearChatsBtn" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">Очистить историю чатов</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 dark:border-slate-800 mt-8">
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-slate-500">
+            © 2026 Семейная хроника · Сохраняем историю вместе
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed top-20 right-6 z-50 opacity-0 transform translate-x-full transition-all duration-300 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 px-5 py-3 rounded-lg shadow-lg text-sm pointer-events-none"></div>
+
+    <script>
+        // APP_SETTINGS – логика настроек: модели, температура, экспорт, фото, системная информация, сброс
+        const root = document.documentElement;
+        function setTheme(theme) {
+            if (theme === 'dark') { root.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+            else { root.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
+        }
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) setTheme('dark');
+        else setTheme('light');
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const isDark = root.classList.contains('dark');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+
+        async function loadSettings() {
+            try {
+                const modelsRes = await fetch('/api/models');
+                if (modelsRes.ok) {
+                    const models = await modelsRes.json();
+                    const select = document.getElementById('modelSelect');
+                    select.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+                    updateOllamaStatus(true);
+                } else throw new Error('Сервер недоступен');
+            } catch(e) {
+                updateOllamaStatus(false);
+                document.getElementById('modelSelect').innerHTML = '<option value="">-- Не удалось загрузить --</option>';
+            }
+            try {
+                const configRes = await fetch('/api/config');
+                const config = await configRes.json();
+                if (config.model) {
+                    const select = document.getElementById('modelSelect');
+                    const customInput = document.getElementById('customModel');
+                    if (Array.from(select.options).some(opt => opt.value === config.model)) select.value = config.model;
+                    else customInput.value = config.model;
+                }
+                if (config.temperature) {
+                    document.getElementById('tempSlider').value = config.temperature;
+                    document.getElementById('tempVal').innerText = config.temperature;
+                }
+            } catch(e) { showToast('Ошибка загрузки настроек', 'error'); }
+            try {
+                const sysRes = await fetch('/api/system-info');
+                const sys = await sysRes.json();
+                document.getElementById('systemInfo').innerText = JSON.stringify(sys, null, 2);
+            } catch(e) { document.getElementById('systemInfo').innerText = 'Не удалось загрузить информацию о системе.'; }
+            loadPhotos();
+        }
+
+        async function loadPhotos() {
+            try {
+                const res = await fetch('/api/photos');
+                const photos = await res.json();
+                const tbody = document.getElementById('photosTable');
+                if (photos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-slate-500">Нет загруженных фотографий</td></tr>';
+                } else {
+                    tbody.innerHTML = photos.map(p => `
+                        <tr class="border-b border-slate-100 dark:border-slate-800">
+                            <td class="py-2 px-2 text-sm">${p.filename}</td>
+                            <td class="py-2 px-2 text-sm">${p.person}</td>
+                            <td class="py-2 px-2"><button class="text-red-600 hover:text-red-700 text-sm" onclick="deletePhoto('${p.filename}')">🗑 Удалить</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch(e) { showToast('Ошибка загрузки фотографий', 'error'); }
+        }
+
+        function updateOllamaStatus(online) {
+            const statusSpan = document.getElementById('ollamaStatus');
+            if (online) statusSpan.innerHTML = '<span class="status-dot online"></span> Ollama подключена';
+            else statusSpan.innerHTML = '<span class="status-dot offline"></span> Ollama не доступна';
+        }
+
+        async function checkOllama() {
+            const spinner = document.getElementById('ollamaSpinner');
+            spinner.classList.remove('hidden');
+            try {
+                const res = await fetch('/api/models');
+                if (res.ok) {
+                    const models = await res.json();
+                    const select = document.getElementById('modelSelect');
+                    select.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+                    updateOllamaStatus(true);
+                    showToast('Соединение установлено', 'success');
+                } else throw new Error('Ошибка');
+            } catch(e) {
+                updateOllamaStatus(false);
+                showToast('Ollama не отвечает', 'error');
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function updateModel() {
+            const model = document.getElementById('modelSelect').value;
+            if (!model) return;
+            await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }) });
+            showToast('Модель обновлена', 'success');
+        }
+
+        async function updateCustomModel() {
+            const model = document.getElementById('customModel').value.trim();
+            if (!model) return;
+            await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }) });
+            showToast('Модель обновлена', 'success');
+        }
+
+        async function updateTemperature() {
+            const temp = document.getElementById('tempSlider').value;
+            await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ temperature: temp }) });
+            showToast('Температура обновлена', 'success');
+        }
+
+        async function exportData() {
+            const resp = await fetch('/api/export');
+            const data = await resp.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'genealogy_export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Экспорт выполнен', 'success');
+        }
+
+        async function deletePhoto(filename) {
+            if (!confirm('Удалить фото?')) return;
+            await fetch(`/api/photos/${filename}`, { method: 'DELETE' });
+            loadPhotos();
+            showToast('Фото удалено', 'success');
+        }
+
+        function resetDatabase() {
+            if (confirm('Сбросить ВСЕ данные? Это действие необратимо.')) {
+                fetch('/reset', { method: 'POST' }).then(() => {
+                    showToast('База данных сброшена', 'success');
+                    setTimeout(() => window.location.href = '/', 1500);
+                }).catch(() => showToast('Ошибка сброса', 'error'));
+            }
+        }
+
+        function clearChats() {
+            if (confirm('Очистить историю всех чатов?')) {
+                localStorage.clear();
+                showToast('История чатов удалена', 'success');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+            }, 3000);
+        }
+
+        document.getElementById('modelSelect')?.addEventListener('change', updateModel);
+        document.getElementById('customModel')?.addEventListener('change', updateCustomModel);
+        document.getElementById('applyTempBtn')?.addEventListener('click', updateTemperature);
+        document.getElementById('checkOllamaBtn')?.addEventListener('click', checkOllama);
+        document.getElementById('exportBtn')?.addEventListener('click', exportData);
+        document.getElementById('resetDbBtn')?.addEventListener('click', resetDatabase);
+        document.getElementById('clearChatsBtn')?.addEventListener('click', clearChats);
+        window.deletePhoto = deletePhoto;
+
+        document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+</html>
